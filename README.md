@@ -7,7 +7,7 @@ A Prometheus metrics exporter for Ethereum externally owned account and contract
 - [ERC721](https://eips.ethereum.org/EIPS/eip-20) contracts
 - [ERC1155](https://eips.ethereum.org/EIPS/eip-20) contracts
 - [Uniswap pair](https://v2.info.uniswap.org/pairs) contracts
-- [Chainlink data feed](https://v2.info.uniswap.org/pairs) contracts
+- [Chainlink data feed](https://docs.chain.link/docs/data-feeds/price-feeds/addresses/?network=ethereum) contracts
 
 # Usage
 Ethereum Address Metrics Exporter requires a config file. An example file can be found [here](https://github.com/ethpandaops/ethereum-address-metrics-exporter/blob/master/example_config.yaml).
