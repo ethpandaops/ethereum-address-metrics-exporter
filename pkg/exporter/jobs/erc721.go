@@ -14,6 +14,7 @@ type ERC721 struct {
 	client        api.ExecutionClient
 	log           logrus.FieldLogger
 	ERC721Balance prometheus.GaugeVec
+	ERC721Error   prometheus.CounterVec
 	addresses     []*AddressERC721
 	labelsMap     map[string]int
 }
@@ -70,9 +71,19 @@ func NewERC721(client api.ExecutionClient, log logrus.FieldLogger, namespace str
 			},
 			labels,
 		),
+		ERC721Error: *prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace:   namespace,
+				Name:        "errors_total",
+				Help:        "The total errors when getting the balance of a ethereum ERC721 contract by address.",
+				ConstLabels: constLabels,
+			},
+			labels,
+		),
 	}
 
 	prometheus.MustRegister(instance.ERC721Balance)
+	prometheus.MustRegister(instance.ERC721Error)
 
 	return instance
 }
@@ -125,6 +136,14 @@ func (n *ERC721) getLabelValues(address *AddressERC721) []string {
 }
 
 func (n *ERC721) getBalance(address *AddressERC721) error {
+	var err error
+
+	defer func() {
+		if err != nil {
+			n.ERC721Error.WithLabelValues(n.getLabelValues(address)...).Inc()
+		}
+	}()
+
 	// call balanceOf(address) which is 0x70a08231
 	balanceOfData := "0x70a08231000000000000000000000000" + address.Address[2:]
 

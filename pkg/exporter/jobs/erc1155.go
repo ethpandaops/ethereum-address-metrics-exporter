@@ -16,6 +16,7 @@ type ERC1155 struct {
 	client         api.ExecutionClient
 	log            logrus.FieldLogger
 	ERC1155Balance prometheus.GaugeVec
+	ERC1155Error   prometheus.CounterVec
 	addresses      []*AddressERC1155
 	labelsMap      map[string]int
 }
@@ -74,9 +75,19 @@ func NewERC1155(client api.ExecutionClient, log logrus.FieldLogger, namespace st
 			},
 			labels,
 		),
+		ERC1155Error: *prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace:   namespace,
+				Name:        "errors_total",
+				Help:        "The total errors when getting the balance of a ethereum ERC115 contract by address and token id.",
+				ConstLabels: constLabels,
+			},
+			labels,
+		),
 	}
 
 	prometheus.MustRegister(instance.ERC1155Balance)
+	prometheus.MustRegister(instance.ERC1155Error)
 
 	return instance
 }
@@ -131,6 +142,14 @@ func (n *ERC1155) getLabelValues(address *AddressERC1155) []string {
 }
 
 func (n *ERC1155) getBalance(address *AddressERC1155) error {
+	var err error
+
+	defer func() {
+		if err != nil {
+			n.ERC1155Error.WithLabelValues(n.getLabelValues(address)...).Inc()
+		}
+	}()
+
 	// call balanceOf(address,uint256) which is 0x00fdd58e
 	balanceOfData := "0x00fdd58e000000000000000000000000" + address.Address[2:] + fmt.Sprintf("%064x", &address.TokenID)
 

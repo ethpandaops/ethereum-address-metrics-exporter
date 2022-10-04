@@ -14,6 +14,7 @@ type UniswapPair struct {
 	client             api.ExecutionClient
 	log                logrus.FieldLogger
 	UniswapPairBalance prometheus.GaugeVec
+	UniswapPairError   prometheus.CounterVec
 	addresses          []*AddressUniswapPair
 	labelsMap          map[string]int
 }
@@ -72,9 +73,19 @@ func NewUniswapPair(client api.ExecutionClient, log logrus.FieldLogger, namespac
 			},
 			labels,
 		),
+		UniswapPairError: *prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace:   namespace,
+				Name:        "errors_total",
+				Help:        "The total errors when getting the balance of a ethereum uniswap pair contract.",
+				ConstLabels: constLabels,
+			},
+			labels,
+		),
 	}
 
 	prometheus.MustRegister(instance.UniswapPairBalance)
+	prometheus.MustRegister(instance.UniswapPairError)
 
 	return instance
 }
@@ -129,6 +140,14 @@ func (n *UniswapPair) getLabelValues(address *AddressUniswapPair) []string {
 }
 
 func (n *UniswapPair) getBalance(address *AddressUniswapPair) error {
+	var err error
+
+	defer func() {
+		if err != nil {
+			n.UniswapPairError.WithLabelValues(n.getLabelValues(address)...).Inc()
+		}
+	}()
+
 	// call getReserves() which is 0x0902f1ac
 	getReservesData := "0x0902f1ac000000000000000000000000"
 

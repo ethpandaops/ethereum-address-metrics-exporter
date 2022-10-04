@@ -14,6 +14,7 @@ type EOA struct {
 	client     api.ExecutionClient
 	log        logrus.FieldLogger
 	EOABalance prometheus.GaugeVec
+	EOAError   prometheus.CounterVec
 	addresses  []*AddressEOA
 	labelsMap  map[string]int
 }
@@ -67,9 +68,19 @@ func NewEOA(client api.ExecutionClient, log logrus.FieldLogger, namespace string
 			},
 			labels,
 		),
+		EOAError: *prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace:   namespace,
+				Name:        "errors_total",
+				Help:        "The total errors when getting the balance of a ethereum externally owned account address.",
+				ConstLabels: constLabels,
+			},
+			labels,
+		),
 	}
 
 	prometheus.MustRegister(instance.EOABalance)
+	prometheus.MustRegister(instance.EOAError)
 
 	return instance
 }
@@ -120,6 +131,14 @@ func (n *EOA) getLabelValues(address *AddressEOA) []string {
 }
 
 func (n *EOA) getBalance(address *AddressEOA) error {
+	var err error
+
+	defer func() {
+		if err != nil {
+			n.EOAError.WithLabelValues(n.getLabelValues(address)...).Inc()
+		}
+	}()
+
 	balance, err := n.client.ETHGetBalance(address.Address, "latest")
 	if err != nil {
 		return err

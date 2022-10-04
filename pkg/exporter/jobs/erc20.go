@@ -14,6 +14,7 @@ type ERC20 struct {
 	client       api.ExecutionClient
 	log          logrus.FieldLogger
 	ERC20Balance prometheus.GaugeVec
+	ERC20Error   prometheus.CounterVec
 	addresses    []*AddressERC20
 	labelsMap    map[string]int
 }
@@ -71,9 +72,19 @@ func NewERC20(client api.ExecutionClient, log logrus.FieldLogger, namespace stri
 			},
 			labels,
 		),
+		ERC20Error: *prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace:   namespace,
+				Name:        "errors_total",
+				Help:        "The total errors when getting the balance of a ethereum ERC20 contract by address.",
+				ConstLabels: constLabels,
+			},
+			labels,
+		),
 	}
 
 	prometheus.MustRegister(instance.ERC20Balance)
+	prometheus.MustRegister(instance.ERC20Error)
 
 	return instance
 }
@@ -128,6 +139,16 @@ func (n *ERC20) getLabelValues(address *AddressERC20, symbol string) []string {
 }
 
 func (n *ERC20) getBalance(address *AddressERC20) error {
+	var err error
+
+	symbol := ""
+
+	defer func() {
+		if err != nil {
+			n.ERC20Error.WithLabelValues(n.getLabelValues(address, symbol)...).Inc()
+		}
+	}()
+
 	// call balanceOf(address) which is 0x70a08231
 	balanceOfData := "0x70a08231000000000000000000000000" + address.Address[2:]
 
@@ -150,7 +171,7 @@ func (n *ERC20) getBalance(address *AddressERC20) error {
 		return err
 	}
 
-	symbol, err := hexStringToString(symbolHex)
+	symbol, err = hexStringToString(symbolHex)
 	if err != nil {
 		return err
 	}
