@@ -42,7 +42,7 @@ type exporter struct {
 func (e *exporter) Start(ctx context.Context) error {
 	e.log.Info("Initializing...")
 
-	e.execution = api.NewExecutionClient(e.log, e.Cfg.Execution.URL, e.Cfg.Execution.Headers, e.Cfg.Execution.Timeout)
+	e.execution = api.NewExecutionClient(e.log, e.Cfg.GlobalConfig.Namespace, e.Cfg.Execution.URL, e.Cfg.Execution.Headers, e.Cfg.Execution.Timeout)
 
 	e.metrics = NewMetrics(e.execution, e.log, e.Cfg.GlobalConfig.Namespace, e.Cfg.GlobalConfig.Labels, &e.Cfg.Addresses)
 

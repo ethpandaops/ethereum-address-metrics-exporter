@@ -14,6 +14,7 @@ type ChainlinkDataFeed struct {
 	client                   api.ExecutionClient
 	log                      logrus.FieldLogger
 	ChainlinkDataFeedBalance prometheus.GaugeVec
+	ChainlinkDataFeedError   prometheus.CounterVec
 	addresses                []*AddressChainlinkDataFeed
 	labelsMap                map[string]int
 }
@@ -72,9 +73,19 @@ func NewChainlinkDataFeed(client api.ExecutionClient, log logrus.FieldLogger, na
 			},
 			labels,
 		),
+		ChainlinkDataFeedError: *prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace:   namespace,
+				Name:        "errors_total",
+				Help:        "The total errors when getting the balance of a ethereum chainlink data feed contract.",
+				ConstLabels: constLabels,
+			},
+			labels,
+		),
 	}
 
 	prometheus.MustRegister(instance.ChainlinkDataFeedBalance)
+	prometheus.MustRegister(instance.ChainlinkDataFeedError)
 
 	return instance
 }
@@ -129,6 +140,14 @@ func (n *ChainlinkDataFeed) getLabelValues(address *AddressChainlinkDataFeed) []
 }
 
 func (n *ChainlinkDataFeed) getBalance(address *AddressChainlinkDataFeed) error {
+	var err error
+
+	defer func() {
+		if err != nil {
+			n.ChainlinkDataFeedError.WithLabelValues(n.getLabelValues(address)...).Inc()
+		}
+	}()
+
 	// call latestAnswer() which is 0x50d25bcd
 	latestAnswerData := "0x50d25bcd000000000000000000000000"
 
