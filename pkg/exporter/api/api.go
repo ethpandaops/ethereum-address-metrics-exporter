@@ -33,10 +33,12 @@ type executionClient struct {
 	log     logrus.FieldLogger
 	client  http.Client
 	headers map[string]string
+
+	metrics Metrics
 }
 
 // NewExecutionClient creates a new ExecutionClient.
-func NewExecutionClient(log logrus.FieldLogger, url string, headers map[string]string, timeout time.Duration) ExecutionClient {
+func NewExecutionClient(log logrus.FieldLogger, namespace, url string, headers map[string]string, timeout time.Duration) ExecutionClient {
 	client := http.Client{
 		Timeout: timeout,
 	}
@@ -46,6 +48,8 @@ func NewExecutionClient(log logrus.FieldLogger, url string, headers map[string]s
 		log:     log,
 		client:  client,
 		headers: headers,
+
+		metrics: NewMetrics(fmt.Sprintf("%s_%s", namespace, "http")),
 	}
 }
 
@@ -57,6 +61,25 @@ type apiResponse struct {
 
 //nolint:unparam // ctx will probably be used in the future
 func (e *executionClient) post(method string, params interface{}, id int) (json.RawMessage, error) {
+	start := time.Now()
+
+	httpMethod := "POST"
+
+	e.metrics.ObserveRequest(httpMethod, e.url, method)
+
+	var rsp *http.Response
+
+	var err error
+
+	defer func() {
+		rspCode := "none"
+		if rsp != nil {
+			rspCode = fmt.Sprintf("%d", rsp.StatusCode)
+		}
+
+		e.metrics.ObserveResponse(httpMethod, e.url, method, rspCode, time.Since(start))
+	}()
+
 	body := map[string]interface{}{
 		"jsonrpc": "2.0",
 		"method":  method,
@@ -69,7 +92,7 @@ func (e *executionClient) post(method string, params interface{}, id int) (json.
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", e.url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(httpMethod, e.url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +103,7 @@ func (e *executionClient) post(method string, params interface{}, id int) (json.
 
 	req.Header.Set("Content-Type", "application/json")
 
-	rsp, err := e.client.Do(req)
+	rsp, err = e.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
