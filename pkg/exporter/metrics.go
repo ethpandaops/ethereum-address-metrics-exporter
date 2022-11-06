@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"context"
+	"time"
 
 	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/jobs"
@@ -16,7 +17,7 @@ type Metrics interface {
 
 type metrics struct {
 	log                      logrus.FieldLogger
-	eoaMetrics               jobs.EOA
+	accountMetrics           jobs.Account
 	erc20Metrics             jobs.ERC20
 	erc721Metrics            jobs.ERC721
 	erc1155Metrics           jobs.ERC1155
@@ -27,23 +28,23 @@ type metrics struct {
 }
 
 // NewMetrics creates a new execution Metrics instance
-func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses *Addresses) Metrics {
+func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses *Addresses) Metrics {
 	m := &metrics{
 		log:                      log,
-		eoaMetrics:               jobs.NewEOA(client, log, namespace, constLabels, addresses.EOA),
-		erc20Metrics:             jobs.NewERC20(client, log, namespace, constLabels, addresses.ERC20),
-		erc721Metrics:            jobs.NewERC721(client, log, namespace, constLabels, addresses.ERC721),
-		erc1155Metrics:           jobs.NewERC1155(client, log, namespace, constLabels, addresses.ERC1155),
-		uniswapPairMetrics:       jobs.NewUniswapPair(client, log, namespace, constLabels, addresses.UniswapPair),
-		chainlinkDataFeedMetrics: jobs.NewChainlinkDataFeed(client, log, namespace, constLabels, addresses.ChainlinkDataFeed),
+		accountMetrics:           jobs.NewAccount(client, log, checkInterval, namespace, constLabels, addresses.Account),
+		erc20Metrics:             jobs.NewERC20(client, log, checkInterval, namespace, constLabels, addresses.ERC20),
+		erc721Metrics:            jobs.NewERC721(client, log, checkInterval, namespace, constLabels, addresses.ERC721),
+		erc1155Metrics:           jobs.NewERC1155(client, log, checkInterval, namespace, constLabels, addresses.ERC1155),
+		uniswapPairMetrics:       jobs.NewUniswapPair(client, log, checkInterval, namespace, constLabels, addresses.UniswapPair),
+		chainlinkDataFeedMetrics: jobs.NewChainlinkDataFeed(client, log, checkInterval, namespace, constLabels, addresses.ChainlinkDataFeed),
 
 		enabledJobs: make(map[string]bool),
 	}
 
 	m.log.Info("Enabling address metrics")
 
-	if len(addresses.EOA) > 0 {
-		m.enabledJobs[m.eoaMetrics.Name()] = true
+	if len(addresses.Account) > 0 {
+		m.enabledJobs[m.accountMetrics.Name()] = true
 	}
 
 	if len(addresses.ERC20) > 0 {
@@ -70,8 +71,8 @@ func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, namespace st
 }
 
 func (m *metrics) StartAsync(ctx context.Context) {
-	if m.enabledJobs[m.eoaMetrics.Name()] {
-		go m.eoaMetrics.Start(ctx)
+	if m.enabledJobs[m.accountMetrics.Name()] {
+		go m.accountMetrics.Start(ctx)
 	}
 
 	if m.enabledJobs[m.erc20Metrics.Name()] {

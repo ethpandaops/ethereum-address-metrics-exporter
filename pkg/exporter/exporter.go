@@ -44,7 +44,7 @@ func (e *exporter) Start(ctx context.Context) error {
 
 	e.execution = api.NewExecutionClient(e.log, e.Cfg.GlobalConfig.Namespace, e.Cfg.Execution.URL, e.Cfg.Execution.Headers, e.Cfg.Execution.Timeout)
 
-	e.metrics = NewMetrics(e.execution, e.log, e.Cfg.GlobalConfig.Namespace, e.Cfg.GlobalConfig.Labels, &e.Cfg.Addresses)
+	e.metrics = NewMetrics(e.execution, e.log, e.Cfg.GlobalConfig.CheckInterval, e.Cfg.GlobalConfig.Namespace, e.Cfg.GlobalConfig.Labels, &e.Cfg.Addresses)
 
 	e.log.
 		WithField("execution_url", e.Cfg.Execution.URL).

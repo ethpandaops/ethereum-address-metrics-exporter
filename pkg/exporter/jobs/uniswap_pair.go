@@ -15,6 +15,7 @@ type UniswapPair struct {
 	log                logrus.FieldLogger
 	UniswapPairBalance prometheus.GaugeVec
 	UniswapPairError   prometheus.CounterVec
+	checkInterval      time.Duration
 	addresses          []*AddressUniswapPair
 	labelsMap          map[string]int
 }
@@ -36,7 +37,7 @@ func (n *UniswapPair) Name() string {
 }
 
 // NewUniswapPair returns a new UniswapPair instance.
-func NewUniswapPair(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressUniswapPair) UniswapPair {
+func NewUniswapPair(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressUniswapPair) UniswapPair {
 	namespace += "_" + NameUniswapPair
 
 	labelsMap := map[string]int{
@@ -60,10 +61,11 @@ func NewUniswapPair(client api.ExecutionClient, log logrus.FieldLogger, namespac
 	}
 
 	instance := UniswapPair{
-		client:    client,
-		log:       log.WithField("module", NameUniswapPair),
-		addresses: addresses,
-		labelsMap: labelsMap,
+		client:        client,
+		log:           log.WithField("module", NameUniswapPair),
+		addresses:     addresses,
+		checkInterval: checkInterval,
+		labelsMap:     labelsMap,
 		UniswapPairBalance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -97,7 +99,7 @@ func (n *UniswapPair) Start(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Second * 15):
+		case <-time.After(n.checkInterval):
 			n.tick(ctx)
 		}
 	}

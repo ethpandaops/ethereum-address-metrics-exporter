@@ -17,10 +17,11 @@ type Config struct {
 }
 
 type GlobalConfig struct {
-	LoggingLevel string            `yaml:"logging" default:"warn"`
-	MetricsAddr  string            `yaml:"metricsAddr" default:":9090"`
-	Namespace    string            `yaml:"namespace" default:"eth_address"`
-	Labels       map[string]string `yaml:"labels"`
+	LoggingLevel  string            `yaml:"logging" default:"warn"`
+	MetricsAddr   string            `yaml:"metricsAddr" default:":9090"`
+	Namespace     string            `yaml:"namespace" default:"eth_address"`
+	CheckInterval time.Duration     `yaml:"checkInterval" default:"15s"`
+	Labels        map[string]string `yaml:"labels"`
 }
 
 // ExecutionNode represents a single ethereum execution client.
@@ -31,7 +32,7 @@ type ExecutionNode struct {
 }
 
 type Addresses struct {
-	EOA               []*jobs.AddressEOA               `yaml:"eoa"`
+	Account           []*jobs.AddressAccount           `yaml:"account"`
 	ERC20             []*jobs.AddressERC20             `yaml:"erc20"`
 	ERC721            []*jobs.AddressERC721            `yaml:"erc721"`
 	ERC1155           []*jobs.AddressERC1155           `yaml:"erc1155"`
@@ -40,12 +41,12 @@ type Addresses struct {
 }
 
 func (c *Config) Validate() error {
-	// Check that all addresses have different names
+	// Check that all account addresses have different names
 	duplicates := make(map[string]struct{})
-	for _, u := range c.Addresses.EOA {
+	for _, u := range c.Addresses.Account {
 		// Check that all addresses have different names
 		if _, ok := duplicates[u.Name]; ok {
-			return fmt.Errorf("there's a duplicate eoa addresses with the same name: %s", u.Name)
+			return fmt.Errorf("there's a duplicate account addresses with the same name: %s", u.Name)
 		}
 
 		duplicates[u.Name] = struct{}{}
