@@ -2,7 +2,7 @@
 
 A Prometheus metrics exporter for Ethereum externally owned account and contract addresses including;
 
-- Externally owned account addresses
+- [Externally owned account and contract](https://ethereum.org/en/developers/docs/accounts) addresses
 - [ERC20](https://eips.ethereum.org/EIPS/eip-20) contracts
 - [ERC721](https://eips.ethereum.org/EIPS/eip-20) contracts
 - [ERC1155](https://eips.ethereum.org/EIPS/eip-20) contracts
@@ -32,14 +32,15 @@ Ethereum Address Metrics Exporter relies entirely on a single `yaml` config file
 | global.logging | `warn` | Log level (`panic`, `fatal`, `warn`, `info`, `debug`, `trace`) |
 | global.metricsAddr | `:9090` | The address the metrics server will listen on |
 | global.namespace | `eth_address` | The prefix added to every metric |
+| global.checkInterval | `15s` | How often the service should check the addresses for balance |
 | global.labels[] |  | Key value pair of labels to add to every metric (optional) |
 | execution.url | `http://localhost:8545` | URL to the execution node |
 | execution.timeout | `10s` | Timeout for requests to the execution node |
 | execution.headers[] |  | Key value pair of headers to add on every request |
-| addresses.eoa |  | List of ethereum externally owned account addresses |
-| addresses.eoa[].name |  | Name of the address, will be a label on the metric |
-| addresses.eoa[].address |  | Ethereum externally owned account address |
-| addresses.eoa[].labels[] |  | Key value pair of labels to add to this address only (optional) |
+| addresses.account |  | List of ethereum externally owned account or contract addresses |
+| addresses.account[].name |  | Name of the address, will be a label on the metric |
+| addresses.account[].address |  | Account address |
+| addresses.account[].labels[] |  | Key value pair of labels to add to this address only (optional) |
 | addresses.erc20 |  | List of ethereum [ERC20](https://eips.ethereum.org/EIPS/eip-20) addresses |
 | addresses.erc20[].name |  | Name of the address, will be a label on the metric |
 | addresses.erc20[].address |  | Ethereum address |
@@ -87,7 +88,7 @@ execution:
     authorization: "Basic abc123"
 
 addresses:
-  eoa:
+  account:
     - name: John smith
       address: 0x4B1D3c9BEf9D097F564DcD6cdF4558CB389bE3d5
       labels:

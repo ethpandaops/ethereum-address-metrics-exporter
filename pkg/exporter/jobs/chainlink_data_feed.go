@@ -15,6 +15,7 @@ type ChainlinkDataFeed struct {
 	log                      logrus.FieldLogger
 	ChainlinkDataFeedBalance prometheus.GaugeVec
 	ChainlinkDataFeedError   prometheus.CounterVec
+	checkInterval            time.Duration
 	addresses                []*AddressChainlinkDataFeed
 	labelsMap                map[string]int
 }
@@ -36,7 +37,7 @@ func (n *ChainlinkDataFeed) Name() string {
 }
 
 // NewChainlinkDataFeed returns a new ChainlinkDataFeed instance.
-func NewChainlinkDataFeed(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressChainlinkDataFeed) ChainlinkDataFeed {
+func NewChainlinkDataFeed(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressChainlinkDataFeed) ChainlinkDataFeed {
 	namespace += "_" + NameChainlinkDataFeed
 
 	labelsMap := map[string]int{
@@ -60,10 +61,11 @@ func NewChainlinkDataFeed(client api.ExecutionClient, log logrus.FieldLogger, na
 	}
 
 	instance := ChainlinkDataFeed{
-		client:    client,
-		log:       log.WithField("module", NameChainlinkDataFeed),
-		addresses: addresses,
-		labelsMap: labelsMap,
+		client:        client,
+		log:           log.WithField("module", NameChainlinkDataFeed),
+		addresses:     addresses,
+		checkInterval: checkInterval,
+		labelsMap:     labelsMap,
 		ChainlinkDataFeedBalance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -97,7 +99,7 @@ func (n *ChainlinkDataFeed) Start(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Second * 15):
+		case <-time.After(n.checkInterval):
 			n.tick(ctx)
 		}
 	}

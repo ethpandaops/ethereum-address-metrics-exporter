@@ -11,12 +11,13 @@ import (
 
 // ERC20 exposes metrics for ethereum ERC20 contract by address
 type ERC20 struct {
-	client       api.ExecutionClient
-	log          logrus.FieldLogger
-	ERC20Balance prometheus.GaugeVec
-	ERC20Error   prometheus.CounterVec
-	addresses    []*AddressERC20
-	labelsMap    map[string]int
+	client        api.ExecutionClient
+	log           logrus.FieldLogger
+	ERC20Balance  prometheus.GaugeVec
+	ERC20Error    prometheus.CounterVec
+	checkInterval time.Duration
+	addresses     []*AddressERC20
+	labelsMap     map[string]int
 }
 
 type AddressERC20 struct {
@@ -35,7 +36,7 @@ func (n *ERC20) Name() string {
 }
 
 // NewERC20 returns a new ERC20 instance.
-func NewERC20(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressERC20) ERC20 {
+func NewERC20(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressERC20) ERC20 {
 	namespace += "_" + NameERC20
 
 	labelsMap := map[string]int{
@@ -59,10 +60,11 @@ func NewERC20(client api.ExecutionClient, log logrus.FieldLogger, namespace stri
 	}
 
 	instance := ERC20{
-		client:    client,
-		log:       log.WithField("module", NameERC20),
-		addresses: addresses,
-		labelsMap: labelsMap,
+		client:        client,
+		log:           log.WithField("module", NameERC20),
+		addresses:     addresses,
+		checkInterval: checkInterval,
+		labelsMap:     labelsMap,
 		ERC20Balance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -96,7 +98,7 @@ func (n *ERC20) Start(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Second * 15):
+		case <-time.After(n.checkInterval):
 			n.tick(ctx)
 		}
 	}

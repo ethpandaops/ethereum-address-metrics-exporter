@@ -9,33 +9,34 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Eth exposes metrics for ethereum externally owned account addresses
-type EOA struct {
-	client     api.ExecutionClient
-	log        logrus.FieldLogger
-	EOABalance prometheus.GaugeVec
-	EOAError   prometheus.CounterVec
-	addresses  []*AddressEOA
-	labelsMap  map[string]int
+// Eth exposes metrics for account addresses
+type Account struct {
+	client         api.ExecutionClient
+	log            logrus.FieldLogger
+	AccountBalance prometheus.GaugeVec
+	AccountError   prometheus.CounterVec
+	checkInterval  time.Duration
+	addresses      []*AddressAccount
+	labelsMap      map[string]int
 }
 
-type AddressEOA struct {
+type AddressAccount struct {
 	Address string            `yaml:"address"`
 	Name    string            `yaml:"name"`
 	Labels  map[string]string `yaml:"labels"`
 }
 
 const (
-	NameEOA = "eoa"
+	NameAccount = "account"
 )
 
-func (n *EOA) Name() string {
-	return NameEOA
+func (n *Account) Name() string {
+	return NameAccount
 }
 
-// NewEOA returns a new EOA instance.
-func NewEOA(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressEOA) EOA {
-	namespace += "_" + NameEOA
+// NewAccount returns a new Account instance.
+func NewAccount(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressAccount) Account {
+	namespace += "_" + NameAccount
 
 	labelsMap := map[string]int{}
 	labelsMap[LabelName] = 0
@@ -54,62 +55,64 @@ func NewEOA(client api.ExecutionClient, log logrus.FieldLogger, namespace string
 		labels[index] = label
 	}
 
-	instance := EOA{
-		client:    client,
-		log:       log.WithField("module", NameEOA),
-		addresses: addresses,
-		labelsMap: labelsMap,
-		EOABalance: *prometheus.NewGaugeVec(
+	instance := Account{
+		client:        client,
+		log:           log.WithField("module", NameAccount),
+		addresses:     addresses,
+		checkInterval: checkInterval,
+		labelsMap:     labelsMap,
+		AccountBalance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
 				Name:        "balance",
-				Help:        "The balance of a ethereum externally owned account address.",
+				Help:        "The balance of a account address.",
 				ConstLabels: constLabels,
 			},
 			labels,
 		),
-		EOAError: *prometheus.NewCounterVec(
+		AccountError: *prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
 				Name:        "errors_total",
-				Help:        "The total errors when getting the balance of a ethereum externally owned account address.",
+				Help:        "The total errors when getting the balance of a account address.",
 				ConstLabels: constLabels,
 			},
 			labels,
 		),
 	}
 
-	prometheus.MustRegister(instance.EOABalance)
-	prometheus.MustRegister(instance.EOAError)
+	prometheus.MustRegister(instance.AccountBalance)
+	prometheus.MustRegister(instance.AccountError)
 
 	return instance
 }
 
-func (n *EOA) Start(ctx context.Context) {
+func (n *Account) Start(ctx context.Context) {
 	n.tick(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Second * 15):
+		case <-time.After(n.checkInterval):
+			n.log.WithField("asd", n.checkInterval).Debug("Tick")
 			n.tick(ctx)
 		}
 	}
 }
 
 //nolint:unparam // context will be used in the future
-func (n *EOA) tick(ctx context.Context) {
+func (n *Account) tick(ctx context.Context) {
 	for _, address := range n.addresses {
 		err := n.getBalance(address)
 
 		if err != nil {
-			n.log.WithError(err).WithField("address", address).Error("Failed to get EOA balance")
+			n.log.WithError(err).WithField("address", address).Error("Failed to get Account balance")
 		}
 	}
 }
 
-func (n *EOA) getLabelValues(address *AddressEOA) []string {
+func (n *Account) getLabelValues(address *AddressAccount) []string {
 	values := make([]string, len(n.labelsMap))
 
 	for label, index := range n.labelsMap {
@@ -130,12 +133,12 @@ func (n *EOA) getLabelValues(address *AddressEOA) []string {
 	return values
 }
 
-func (n *EOA) getBalance(address *AddressEOA) error {
+func (n *Account) getBalance(address *AddressAccount) error {
 	var err error
 
 	defer func() {
 		if err != nil {
-			n.EOAError.WithLabelValues(n.getLabelValues(address)...).Inc()
+			n.AccountError.WithLabelValues(n.getLabelValues(address)...).Inc()
 		}
 	}()
 
@@ -145,7 +148,7 @@ func (n *EOA) getBalance(address *AddressEOA) error {
 	}
 
 	balanceFloat64 := hexStringToFloat64(balance)
-	n.EOABalance.WithLabelValues(n.getLabelValues(address)...).Set(balanceFloat64)
+	n.AccountBalance.WithLabelValues(n.getLabelValues(address)...).Set(balanceFloat64)
 
 	return nil
 }

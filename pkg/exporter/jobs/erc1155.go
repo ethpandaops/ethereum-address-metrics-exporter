@@ -17,6 +17,7 @@ type ERC1155 struct {
 	log            logrus.FieldLogger
 	ERC1155Balance prometheus.GaugeVec
 	ERC1155Error   prometheus.CounterVec
+	checkInterval  time.Duration
 	addresses      []*AddressERC1155
 	labelsMap      map[string]int
 }
@@ -38,7 +39,7 @@ func (n *ERC1155) Name() string {
 }
 
 // NewERC1155 returns a new ERC1155 instance.
-func NewERC1155(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressERC1155) ERC1155 {
+func NewERC1155(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressERC1155) ERC1155 {
 	namespace += "_" + NameERC1155
 
 	labelsMap := map[string]int{
@@ -62,10 +63,11 @@ func NewERC1155(client api.ExecutionClient, log logrus.FieldLogger, namespace st
 	}
 
 	instance := ERC1155{
-		client:    client,
-		log:       log.WithField("module", NameERC1155),
-		addresses: addresses,
-		labelsMap: labelsMap,
+		client:        client,
+		log:           log.WithField("module", NameERC1155),
+		addresses:     addresses,
+		checkInterval: checkInterval,
+		labelsMap:     labelsMap,
 		ERC1155Balance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -99,7 +101,7 @@ func (n *ERC1155) Start(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Second * 15):
+		case <-time.After(n.checkInterval):
 			n.tick(ctx)
 		}
 	}

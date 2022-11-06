@@ -15,6 +15,7 @@ type ERC721 struct {
 	log           logrus.FieldLogger
 	ERC721Balance prometheus.GaugeVec
 	ERC721Error   prometheus.CounterVec
+	checkInterval time.Duration
 	addresses     []*AddressERC721
 	labelsMap     map[string]int
 }
@@ -35,7 +36,7 @@ func (n *ERC721) Name() string {
 }
 
 // NewERC721 returns a new ERC721 instance.
-func NewERC721(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressERC721) ERC721 {
+func NewERC721(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressERC721) ERC721 {
 	namespace += "_" + NameERC721
 
 	labelsMap := map[string]int{
@@ -58,10 +59,11 @@ func NewERC721(client api.ExecutionClient, log logrus.FieldLogger, namespace str
 	}
 
 	instance := ERC721{
-		client:    client,
-		log:       log.WithField("module", NameERC721),
-		addresses: addresses,
-		labelsMap: labelsMap,
+		client:        client,
+		log:           log.WithField("module", NameERC721),
+		addresses:     addresses,
+		checkInterval: checkInterval,
+		labelsMap:     labelsMap,
 		ERC721Balance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -95,7 +97,7 @@ func (n *ERC721) Start(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Second * 15):
+		case <-time.After(n.checkInterval):
 			n.tick(ctx)
 		}
 	}
