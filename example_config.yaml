@@ -13,7 +13,7 @@ execution:
     authorization: "Basic abc123"
 
 addresses:
-  eoa:
+  contract:
     - name: John smith
       address: 0x4B1D3c9BEf9D097F564DcD6cdF4558CB389bE3d5
       # optional metric labels to add to this address
