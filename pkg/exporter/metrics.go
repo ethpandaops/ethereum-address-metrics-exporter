@@ -21,6 +21,7 @@ type metrics struct {
 	erc20Metrics             jobs.ERC20
 	erc721Metrics            jobs.ERC721
 	erc1155Metrics           jobs.ERC1155
+	erc4626Metrics           jobs.ERC4626
 	uniswapPairMetrics       jobs.UniswapPair
 	chainlinkDataFeedMetrics jobs.ChainlinkDataFeed
 
@@ -35,6 +36,7 @@ func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterva
 		erc20Metrics:             jobs.NewERC20(client, log, checkInterval, namespace, constLabels, addresses.ERC20),
 		erc721Metrics:            jobs.NewERC721(client, log, checkInterval, namespace, constLabels, addresses.ERC721),
 		erc1155Metrics:           jobs.NewERC1155(client, log, checkInterval, namespace, constLabels, addresses.ERC1155),
+		erc4626Metrics:           jobs.NewERC4626(client, log, checkInterval, namespace, constLabels, addresses.ERC4626),
 		uniswapPairMetrics:       jobs.NewUniswapPair(client, log, checkInterval, namespace, constLabels, addresses.UniswapPair),
 		chainlinkDataFeedMetrics: jobs.NewChainlinkDataFeed(client, log, checkInterval, namespace, constLabels, addresses.ChainlinkDataFeed),
 
@@ -57,6 +59,10 @@ func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterva
 
 	if len(addresses.ERC1155) > 0 {
 		m.enabledJobs[m.erc1155Metrics.Name()] = true
+	}
+
+	if len(addresses.ERC4626) > 0 {
+		m.enabledJobs[m.erc4626Metrics.Name()] = true
 	}
 
 	if len(addresses.UniswapPair) > 0 {
@@ -85,6 +91,10 @@ func (m *metrics) StartAsync(ctx context.Context) {
 
 	if m.enabledJobs[m.erc1155Metrics.Name()] {
 		go m.erc1155Metrics.Start(ctx)
+	}
+
+	if m.enabledJobs[m.erc4626Metrics.Name()] {
+		go m.erc4626Metrics.Start(ctx)
 	}
 
 	if m.enabledJobs[m.uniswapPairMetrics.Name()] {

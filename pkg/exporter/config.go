@@ -36,6 +36,7 @@ type Addresses struct {
 	ERC20             []*jobs.AddressERC20             `yaml:"erc20"`
 	ERC721            []*jobs.AddressERC721            `yaml:"erc721"`
 	ERC1155           []*jobs.AddressERC1155           `yaml:"erc1155"`
+	ERC4626           []*jobs.AddressERC4626           `yaml:"erc4626"`
 	UniswapPair       []*jobs.AddressUniswapPair       `yaml:"uniswapPair"`
 	ChainlinkDataFeed []*jobs.AddressChainlinkDataFeed `yaml:"chainlinkDataFeed"`
 }
@@ -87,6 +88,16 @@ func (c *Config) Validate() error {
 		// Check that all addresses have different names
 		if _, ok := duplicates[u.Name]; ok {
 			return fmt.Errorf("there's a duplicate uniswap pair addresses with the same name: %s", u.Name)
+		}
+
+		duplicates[u.Name] = struct{}{}
+	}
+
+	duplicates = make(map[string]struct{})
+	for _, u := range c.Addresses.ERC4626 {
+		// Check that all addresses have different names
+		if _, ok := duplicates[u.Name]; ok {
+			return fmt.Errorf("there's a duplicate erc4626 addresses with the same name: %s", u.Name)
 		}
 
 		duplicates[u.Name] = struct{}{}

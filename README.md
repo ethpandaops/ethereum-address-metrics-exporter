@@ -6,6 +6,7 @@ A Prometheus metrics exporter for Ethereum externally owned account and contract
 - [ERC20](https://eips.ethereum.org/EIPS/eip-20) contracts
 - [ERC721](https://eips.ethereum.org/EIPS/eip-20) contracts
 - [ERC1155](https://eips.ethereum.org/EIPS/eip-20) contracts
+- [ERC4626](https://eips.ethereum.org/EIPS/eip-4626) tokenized vaults
 - [Uniswap pair](https://v2.info.uniswap.org/pairs) contracts
 - [Chainlink data feed](https://docs.chain.link/docs/data-feeds/price-feeds/addresses/?network=ethereum) contracts
 
@@ -57,6 +58,11 @@ Ethereum Address Metrics Exporter relies entirely on a single `yaml` config file
 | addresses.erc1155[].contract |  | Ethereum contract address |
 | addresses.erc1155[].tokenID |  | NFT Token Identifier |
 | addresses.erc1155[].labels[] |  | Key value pair of labels to add to this address only (optional) |
+| addresses.erc4626 |  | List of ethereum [ERC4626](https://eips.ethereum.org/EIPS/eip-4626) tokenized vault addresses |
+| addresses.erc4626[].name |  | Name of the vault, will be a label on the metric |
+| addresses.erc4626[].address |  | Ethereum address holding vault shares |
+| addresses.erc4626[].contract |  | Ethereum vault contract address |
+| addresses.erc4626[].labels[] |  | Key value pair of labels to add to this address only (optional) |
 | addresses.uniswapPair |  | List of [uniswap pair](https://v2.info.uniswap.org/pairs) addresses |
 | addresses.uniswapPair[].name |  | Name of the address, will be a label on the metric |
 | addresses.uniswapPair[].from |  | First symbol name, will be a label on the metric |
@@ -111,6 +117,12 @@ addresses:
       contract: 0x4B1D8DC12da8f658FA8BF0cdB18BB7D4dABB2DB3
       tokenID: 100
       address: 0x4B1D6D35f293AB699Bfc6DE141E031F3E3997BBe
+  erc4626:
+    - name: Morpho Value steakhouse USDC
+      contract: 0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB
+      address: 0x4B1D1465b14cA06e72b942F361Fd3352Aa9c5368
+      labels:
+        type: usdc
   # https://v2.info.uniswap.org/pairs
   uniswapPair:
     - name: eth->usdt
