@@ -11,13 +11,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Exporter defines the Ethereum Metrics Exporter interface
+// Exporter defines the Ethereum Metrics Exporter interface.
 type Exporter interface {
 	// Init initialises the exporter
 	Start(ctx context.Context) error
 }
 
-// NewExporter returns a new Exporter instance
+// NewExporter returns a new Exporter instance.
 func NewExporter(log logrus.FieldLogger, conf *Config) Exporter {
 	if err := conf.Validate(); err != nil {
 		log.Fatalf("invalid config: %s", err)

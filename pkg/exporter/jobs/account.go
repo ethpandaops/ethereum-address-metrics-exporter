@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Eth exposes metrics for account addresses
+// Eth exposes metrics for account addresses.
 type Account struct {
 	client         api.ExecutionClient
 	log            logrus.FieldLogger
@@ -105,7 +105,6 @@ func (n *Account) Start(ctx context.Context) {
 func (n *Account) tick(ctx context.Context) {
 	for _, address := range n.addresses {
 		err := n.getBalance(address)
-
 		if err != nil {
 			n.log.WithError(err).WithField("address", address).Error("Failed to get Account balance")
 		}

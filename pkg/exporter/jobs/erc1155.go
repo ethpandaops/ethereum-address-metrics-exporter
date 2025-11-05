@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ERC1155 exposes metrics for ethereum ERC115 contract by address and token id
+// ERC1155 exposes metrics for ethereum ERC115 contract by address and token id.
 type ERC1155 struct {
 	client         api.ExecutionClient
 	log            logrus.FieldLogger
@@ -25,7 +25,7 @@ type ERC1155 struct {
 type AddressERC1155 struct {
 	Address  string            `yaml:"address"`
 	Contract string            `yaml:"contract"`
-	TokenID  big.Int           `yaml:"tokenID"`
+	TokenID  big.Int           `yaml:"tokenId"`
 	Name     string            `yaml:"name"`
 	Labels   map[string]string `yaml:"labels"`
 }
@@ -111,7 +111,6 @@ func (n *ERC1155) Start(ctx context.Context) {
 func (n *ERC1155) tick(ctx context.Context) {
 	for _, address := range n.addresses {
 		err := n.getBalance(address)
-
 		if err != nil {
 			n.log.WithError(err).WithField("address", address).Error("Failed to get erc1155 contract balanceOf address")
 		}

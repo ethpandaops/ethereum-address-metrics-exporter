@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ChainlinkDataFeed exposes metrics for ethereum chainlink data feed contract
+// ChainlinkDataFeed exposes metrics for ethereum chainlink data feed contract.
 type ChainlinkDataFeed struct {
 	client                   api.ExecutionClient
 	log                      logrus.FieldLogger
@@ -109,7 +109,6 @@ func (n *ChainlinkDataFeed) Start(ctx context.Context) {
 func (n *ChainlinkDataFeed) tick(ctx context.Context) {
 	for _, address := range n.addresses {
 		err := n.getBalance(address)
-
 		if err != nil {
 			n.log.WithError(err).WithField("address", address).Error("Failed to get chainlink data feed balance")
 		}

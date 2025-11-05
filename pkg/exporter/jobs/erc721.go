@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ERC721 exposes metrics for ethereum ERC721 contract by address
+// ERC721 exposes metrics for ethereum ERC721 contract by address.
 type ERC721 struct {
 	client        api.ExecutionClient
 	log           logrus.FieldLogger
@@ -107,7 +107,6 @@ func (n *ERC721) Start(ctx context.Context) {
 func (n *ERC721) tick(ctx context.Context) {
 	for _, address := range n.addresses {
 		err := n.getBalance(address)
-
 		if err != nil {
 			n.log.WithError(err).WithField("address", address).Error("Failed to get erc721 contract balanceOf address")
 		}

@@ -1,3 +1,5 @@
+version: 2
+
 project_name: ethereum-address-metrics-exporter
 
 before:
@@ -5,24 +7,31 @@ before:
     - go mod tidy
     - go generate ./...
 builds:
-  - env:
+  - id: linux-amd64
+    env:
       - CGO_ENABLED=0
-    binary: ethereum-address-metrics-exporter-{{.Version}}
+    binary: ethereum-address-metrics-exporter
     goos:
-      - linux
-      - windows
-      - darwin
-
+    - linux
     goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 6
-      - 7
-    ignore:
-      - goarch: 386
+    - amd64
     ldflags:
-      - -s -w -X github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/version.Release={{.Tag}} -X github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/version.GitCommit={{.ShortCommit}}
+      - -s -w
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  - id: linux-arm64
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/server
+    binary: ethereum-address-metrics-exporter
+    goos:
+    - linux
+    goarch:
+    - arm64
+ ldflags:
+      - -s -w
+      - -X github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/version.Release={{.Tag}}
+      - -X github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/version.GitCommit={{.ShortCommit}}
     mod_timestamp: "{{ .CommitTimestamp }}"
 checksum:
   name_template: 'checksums.txt'
@@ -36,16 +45,26 @@ changelog:
       - '^test:'
 
 dockers:
-  ## Scratch
   - use: buildx
     goos: linux
     goarch: amd64
-    dockerfile: goreleaser-scratch.Dockerfile
+    dockerfile: Dockerfile
+    extra_files:
+      - Makefile
+      - go.mod
+      - go.sum
+      - cmd
+      - internal
+      - web
+      - config.example.yaml
     image_templates:
       - "ethpandaops/{{ .ProjectName }}:{{ .Version }}-amd64"
-      - "ethpandaops/{{ .ProjectName }}:latest-amd64"
+      - "ethpandaops/{{ .ProjectName }}:{{ if .Env.RELEASE_SUFFIX }}{{ .Env.RELEASE_SUFFIX }}-{{ end }}latest-amd64"
     build_flag_templates:
       - "--platform=linux/amd64"
+      - "--build-arg=VERSION={{.Tag}}"
+      - "--build-arg=GIT_COMMIT={{.FullCommit}}"
+      - "--build-arg=BUILD_DATE={{.Date}}"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
@@ -53,45 +72,26 @@ dockers:
   - use: buildx
     goos: linux
     goarch: arm64
-    dockerfile: goreleaser-scratch.Dockerfile
+    dockerfile: Dockerfile
+    extra_files:
+      - go.mod
+      - go.sum
+      - cmd
+      - pkg
     image_templates:
       - "ethpandaops/{{ .ProjectName }}:{{ .Version }}-arm64v8"
-      - "ethpandaops/{{ .ProjectName }}:latest-arm64v8"
+      - "ethpandaops/{{ .ProjectName }}:{{ if .Env.RELEASE_SUFFIX }}{{ .Env.RELEASE_SUFFIX }}-{{ end }}latest-arm64v8"
     build_flag_templates:
       - "--platform=linux/arm64/v8"
+      - "--build-arg=VERSION={{.Tag}}"
+      - "--build-arg=GIT_COMMIT={{.FullCommit}}"
+      - "--build-arg=BUILD_DATE={{.Date}}"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
-  ## Debian
-  - use: buildx
-    goos: linux
-    goarch: amd64
-    dockerfile: goreleaser-debian.Dockerfile
-    image_templates:
-      - "ethpandaops/{{ .ProjectName }}:{{ .Version }}-debian-amd64"
-      - "ethpandaops/{{ .ProjectName }}:debian-latest-amd64"
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-  - use: buildx
-    goos: linux
-    goarch: arm64
-    dockerfile: goreleaser-debian.Dockerfile
-    image_templates:
-      - "ethpandaops/{{ .ProjectName }}:{{ .Version }}-debian-arm64v8"
-      - "ethpandaops/{{ .ProjectName }}:debian-latest-arm64v8"
-    build_flag_templates:
-      - "--platform=linux/arm64/v8"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
+
 docker_manifests:
-  ## Scratch
   - name_template: ethpandaops/{{ .ProjectName }}:{{ .Version }}
     image_templates:
       - ethpandaops/{{ .ProjectName }}:{{ .Version }}-amd64
@@ -99,20 +99,7 @@ docker_manifests:
   - name_template: ethpandaops/{{ .ProjectName }}:{{ .Version }}-arm64
     image_templates:
       - ethpandaops/{{ .ProjectName }}:{{ .Version }}-arm64v8
-  - name_template: ethpandaops/{{ .ProjectName }}:latest
+  - name_template: ethpandaops/{{ .ProjectName }}:{{ if .Env.RELEASE_SUFFIX }}{{ .Env.RELEASE_SUFFIX }}-{{ end }}latest
     image_templates:
-      - ethpandaops/{{ .ProjectName }}:latest-amd64
-      - ethpandaops/{{ .ProjectName }}:latest-arm64v8
-
-  ## Debian
-  - name_template: ethpandaops/{{ .ProjectName }}:{{ .Version }}-debian
-    image_templates:
-      - ethpandaops/{{ .ProjectName }}:{{ .Version }}-debian-amd64
-      - ethpandaops/{{ .ProjectName }}:{{ .Version }}-debian-arm64v8
-  - name_template: ethpandaops/{{ .ProjectName }}:{{ .Version }}-debian-arm64
-    image_templates:
-      - ethpandaops/{{ .ProjectName }}:{{ .Version }}-debian-arm64v8
-  - name_template: ethpandaops/{{ .ProjectName }}:debian-latest
-    image_templates:
-      - ethpandaops/{{ .ProjectName }}:debian-latest-amd64
-      - ethpandaops/{{ .ProjectName }}:debian-latest-arm64v8
+      - ethpandaops/{{ .ProjectName }}:{{ if .Env.RELEASE_SUFFIX }}{{ .Env.RELEASE_SUFFIX }}-{{ end }}latest-amd64
+      - ethpandaops/{{ .ProjectName }}:{{ if .Env.RELEASE_SUFFIX }}{{ .Env.RELEASE_SUFFIX }}-{{ end }}latest-arm64v8

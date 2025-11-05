@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// UniswapPair exposes metrics for ethereum uniswap pair contract
+// UniswapPair exposes metrics for ethereum uniswap pair contract.
 type UniswapPair struct {
 	client             api.ExecutionClient
 	log                logrus.FieldLogger
@@ -109,7 +109,6 @@ func (n *UniswapPair) Start(ctx context.Context) {
 func (n *UniswapPair) tick(ctx context.Context) {
 	for _, address := range n.addresses {
 		err := n.getBalance(address)
-
 		if err != nil {
 			n.log.WithError(err).WithField("address", address).Error("Failed to get uniswap pair balance")
 		}
