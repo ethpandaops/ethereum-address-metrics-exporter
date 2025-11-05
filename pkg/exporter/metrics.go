@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Metrics exposes Execution layer metrics
+// Metrics exposes Execution layer metrics.
 type Metrics interface {
 	// StartAsync starts all the metrics jobs
 	StartAsync(ctx context.Context)
@@ -27,7 +27,7 @@ type metrics struct {
 	enabledJobs map[string]bool
 }
 
-// NewMetrics creates a new execution Metrics instance
+// NewMetrics creates a new execution Metrics instance.
 func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses *Addresses) Metrics {
 	m := &metrics{
 		log:                      log,

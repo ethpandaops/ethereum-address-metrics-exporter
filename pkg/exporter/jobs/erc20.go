@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ERC20 exposes metrics for ethereum ERC20 contract by address
+// ERC20 exposes metrics for ethereum ERC20 contract by address.
 type ERC20 struct {
 	client        api.ExecutionClient
 	log           logrus.FieldLogger
@@ -108,7 +108,6 @@ func (n *ERC20) Start(ctx context.Context) {
 func (n *ERC20) tick(ctx context.Context) {
 	for _, address := range n.addresses {
 		err := n.getBalance(address)
-
 		if err != nil {
 			n.log.WithError(err).WithField("address", address).Error("Failed to get erc20 contract balanceOf address")
 		}
