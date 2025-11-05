@@ -47,6 +47,14 @@ addresses:
       # optional metric labels to add to this address
       labels:
         extra: label
+  # https://ethereum.org/en/developers/docs/standards/tokens/erc-4626/
+  erc4626:
+    - name: Morpho Value steakhouse USDC
+      contract: 0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB
+      address: 0x4B1D6D35f293AB699Bfc6DE141E031F3E3997BBe
+      # optional metric labels to add to this address
+      labels:
+        type: usdc
   # https://v2.info.uniswap.org/pairs
   uniswapPair:
     - name: eth->usdt

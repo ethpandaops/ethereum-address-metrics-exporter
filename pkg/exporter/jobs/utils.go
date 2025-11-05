@@ -31,17 +31,33 @@ func hexStringToString(hexStr string) (string, error) {
 		return "", err
 	}
 
-	// split on end of transmission
-	splitTransmission := bytes.Split(bs, []byte{4})
-	last := splitTransmission[len(splitTransmission)-1]
+	// ABI-encoded strings have:
+	// - First 32 bytes: offset to data location (usually 0x20 = 32)
+	// - Next 32 bytes: length of string
+	// - Remaining bytes: actual string data (padded to 32-byte boundaries)
 
-	// split on end of text
-	splitText := bytes.Split(last, []byte{3})
-	last = splitText[len(splitText)-1]
+	if len(bs) < 64 {
+		// Fallback for non-standard encoding
+		last := bytes.Trim(bs, "\x00")
+		last = bytes.TrimSpace(last)
 
-	// trim null bytes and spaces
-	last = bytes.Trim(last, "\x00")
-	last = bytes.TrimSpace(last)
+		return string(last), nil
+	}
 
-	return string(last), nil
+	// Read the length from bytes 32-64
+	lengthBig := new(big.Int).SetBytes(bs[32:64])
+	length := lengthBig.Int64()
+
+	if length <= 0 || int(length) > len(bs)-64 {
+		// Fallback if length seems invalid
+		last := bytes.Trim(bs, "\x00")
+		last = bytes.TrimSpace(last)
+
+		return string(last), nil
+	}
+
+	// Extract the actual string data starting at byte 64
+	stringData := bs[64 : 64+length]
+
+	return string(stringData), nil
 }
