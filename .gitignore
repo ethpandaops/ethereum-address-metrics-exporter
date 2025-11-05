@@ -1,5 +1,36 @@
-bin
-.vscode
+# Local configuration (copy from config.example.yaml)
 config.yaml
-__debug_bin
-ethereum-balance-metrics-exporter
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+bin/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+.goreleaser.yaml.new
+
+# Test coverage
+*.out
+coverage.txt
+coverage.out
+coverage.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Development
+tmp/
+.tmp/
+
+
+ethereum-address-metrics-exporter
