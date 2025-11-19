@@ -24,6 +24,7 @@ type metrics struct {
 	erc4626Metrics           jobs.ERC4626
 	uniswapPairMetrics       jobs.UniswapPair
 	chainlinkDataFeedMetrics jobs.ChainlinkDataFeed
+	erc4337Metrics           jobs.ERC4337
 
 	enabledJobs map[string]bool
 }
@@ -39,6 +40,7 @@ func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterva
 		erc4626Metrics:           jobs.NewERC4626(client, log, checkInterval, namespace, constLabels, addresses.ERC4626),
 		uniswapPairMetrics:       jobs.NewUniswapPair(client, log, checkInterval, namespace, constLabels, addresses.UniswapPair),
 		chainlinkDataFeedMetrics: jobs.NewChainlinkDataFeed(client, log, checkInterval, namespace, constLabels, addresses.ChainlinkDataFeed),
+		erc4337Metrics:           jobs.NewERC4337(client, log, checkInterval, namespace, constLabels, addresses.ERC4337),
 
 		enabledJobs: make(map[string]bool),
 	}
@@ -73,6 +75,10 @@ func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterva
 		m.enabledJobs[m.chainlinkDataFeedMetrics.Name()] = true
 	}
 
+	if len(addresses.ERC4337) > 0 {
+		m.enabledJobs[m.erc4337Metrics.Name()] = true
+	}
+
 	return m
 }
 
@@ -103,6 +109,10 @@ func (m *metrics) StartAsync(ctx context.Context) {
 
 	if m.enabledJobs[m.chainlinkDataFeedMetrics.Name()] {
 		go m.chainlinkDataFeedMetrics.Start(ctx)
+	}
+
+	if m.enabledJobs[m.erc4337Metrics.Name()] {
+		go m.erc4337Metrics.Start(ctx)
 	}
 
 	m.log.Info("Started metrics exporter jobs")
