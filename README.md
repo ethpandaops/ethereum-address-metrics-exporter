@@ -7,6 +7,7 @@ A Prometheus metrics exporter for Ethereum externally owned account and contract
 - [ERC721](https://eips.ethereum.org/EIPS/eip-20) contracts
 - [ERC1155](https://eips.ethereum.org/EIPS/eip-20) contracts
 - [ERC4626](https://eips.ethereum.org/EIPS/eip-4626) tokenized vaults
+- [ERC4337](https://eips.ethereum.org/EIPS/eip-4337) account abstraction
 - [Uniswap pair](https://v2.info.uniswap.org/pairs) contracts
 - [Chainlink data feed](https://docs.chain.link/docs/data-feeds/price-feeds/addresses/?network=ethereum) contracts
 
@@ -63,6 +64,11 @@ Ethereum Address Metrics Exporter relies entirely on a single `yaml` config file
 | addresses.erc4626[].address |  | Ethereum address holding vault shares |
 | addresses.erc4626[].contract |  | Ethereum vault contract address |
 | addresses.erc4626[].labels[] |  | Key value pair of labels to add to this address only (optional) |
+| addresses.erc4337 |  | List of ethereum [ERC4337](https://eips.ethereum.org/EIPS/eip-4337) account addresses |
+| addresses.erc4337[].name |  | Name of the account, will be a label on the metric |
+| addresses.erc4337[].address |  | Ethereum address of the account |
+| addresses.erc4337[].contract |  | Ethereum EntryPoint contract address |
+| addresses.erc4337[].labels[] |  | Key value pair of labels to add to this address only (optional) |
 | addresses.uniswapPair |  | List of [uniswap pair](https://v2.info.uniswap.org/pairs) addresses |
 | addresses.uniswapPair[].name |  | Name of the address, will be a label on the metric |
 | addresses.uniswapPair[].from |  | First symbol name, will be a label on the metric |
@@ -123,6 +129,12 @@ addresses:
       address: 0x4B1D1465b14cA06e72b942F361Fd3352Aa9c5368
       labels:
         type: usdc
+  erc4337:
+    - name: Some Paymaster
+      contract: 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789
+      address: 0x4B1D1465b14cA06e72b942F361Fd3352Aa9c5368
+      labels:
+        type: paymaster
   # https://v2.info.uniswap.org/pairs
   uniswapPair:
     - name: eth->usdt

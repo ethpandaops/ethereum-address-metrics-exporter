@@ -55,6 +55,14 @@ addresses:
       # optional metric labels to add to this address
       labels:
         type: usdc
+  # https://eips.ethereum.org/EIPS/eip-4337
+  erc4337:
+    - name: Some Paymaster
+      contract: 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789
+      address: 0x4B1D1465b14cA06e72b942F361Fd3352Aa9c5368
+      # optional metric labels to add to this address
+      labels:
+        type: paymaster
   # https://v2.info.uniswap.org/pairs
   uniswapPair:
     - name: eth->usdt
