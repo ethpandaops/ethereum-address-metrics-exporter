@@ -114,5 +114,15 @@ func (c *Config) Validate() error {
 		duplicates[u.Name] = struct{}{}
 	}
 
+	duplicates = make(map[string]struct{})
+	for _, u := range c.Addresses.ERC4337 {
+		// Check that all addresses have different names
+		if _, ok := duplicates[u.Name]; ok {
+			return fmt.Errorf("there's a duplicate erc4337 addresses with the same name: %s", u.Name)
+		}
+
+		duplicates[u.Name] = struct{}{}
+	}
+
 	return nil
 }
