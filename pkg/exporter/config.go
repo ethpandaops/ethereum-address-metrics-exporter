@@ -39,6 +39,7 @@ type Addresses struct {
 	ERC4626           []*jobs.AddressERC4626           `yaml:"erc4626"`
 	UniswapPair       []*jobs.AddressUniswapPair       `yaml:"uniswapPair"`
 	ChainlinkDataFeed []*jobs.AddressChainlinkDataFeed `yaml:"chainlinkDataFeed"`
+	ERC4337           []*jobs.AddressERC4337           `yaml:"erc4337"`
 }
 
 func (c *Config) Validate() error {
