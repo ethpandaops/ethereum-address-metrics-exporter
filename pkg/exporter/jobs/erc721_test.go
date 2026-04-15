@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -59,10 +60,10 @@ func TestERC721_getBalance(t *testing.T) {
 			log := logrus.New()
 			log.SetLevel(logrus.ErrorLevel)
 
-			namespace := "erc721_" + string(rune('a'+i))
+			namespace := "erc721_" + strconv.Itoa(i)
 
 			erc721 := NewERC721(
-				mockClient,
+				mockClients(mockClient),
 				log,
 				15*time.Second,
 				namespace,
@@ -70,7 +71,7 @@ func TestERC721_getBalance(t *testing.T) {
 				[]*AddressERC721{tt.address},
 			)
 
-			err := erc721.getBalance(tt.address)
+			err := erc721.getBalance(context.Background(), mockClient, tt.address)
 
 			if (err != nil) != tt.wantError {
 				t.Errorf("getBalance() error = %v, wantError %v", err, tt.wantError)
@@ -113,7 +114,7 @@ func TestERC721_tick(t *testing.T) {
 	}
 
 	erc721 := NewERC721(
-		mockClient,
+		mockClients(mockClient),
 		log,
 		15*time.Second,
 		"test_erc721_tick",
@@ -124,7 +125,7 @@ func TestERC721_tick(t *testing.T) {
 	ctx := context.Background()
 	erc721.tick(ctx)
 
-	// Each address requires 1 call (balanceOf)
+	// Each address requires 1 call (balanceOf), 1 client * 2 addresses
 	expectedCalls := len(addresses)
 	if len(mockClient.callLog) != expectedCalls {
 		t.Errorf("Expected %d RPC calls, got %d", expectedCalls, len(mockClient.callLog))
@@ -147,7 +148,7 @@ func TestERC721_getLabelValues(t *testing.T) {
 	}
 
 	erc721 := NewERC721(
-		&mockExecutionClient{},
+		mockClients(&mockExecutionClient{}),
 		log,
 		15*time.Second,
 		"test_erc721_labels",
@@ -155,7 +156,7 @@ func TestERC721_getLabelValues(t *testing.T) {
 		addresses,
 	)
 
-	labels := erc721.getLabelValues(addresses[0])
+	labels := erc721.getLabelValues(addresses[0], "mock-node")
 
 	if len(labels) != len(erc721.labelsMap) {
 		t.Errorf("Expected %d label values, got %d", len(erc721.labelsMap), len(labels))

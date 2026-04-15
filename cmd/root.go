@@ -4,10 +4,11 @@ import (
 	"os"
 
 	"github.com/creasty/defaults"
-	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
+
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter"
 )
 
 // rootCmd represents the base command when called without any subcommands.
@@ -60,8 +61,8 @@ func loadConfigFromFile(file string) (*exporter.Config, error) {
 
 	type plain exporter.Config
 
-	if err := yaml.Unmarshal(yamlFile, (*plain)(cfg)); err != nil {
-		return nil, err
+	if unmarshalErr := yaml.Unmarshal(yamlFile, (*plain)(cfg)); unmarshalErr != nil {
+		return nil, unmarshalErr
 	}
 
 	return cfg, nil

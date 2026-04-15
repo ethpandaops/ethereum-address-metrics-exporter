@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/jobs"
-	"github.com/sirupsen/logrus"
 )
 
 // Metrics exposes Execution layer metrics.
@@ -30,19 +31,19 @@ type metrics struct {
 }
 
 // NewMetrics creates a new execution Metrics instance.
-func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses *Addresses) Metrics {
+func NewMetrics(clients []api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses *Addresses) Metrics {
 	m := &metrics{
 		log:                      log,
-		accountMetrics:           jobs.NewAccount(client, log, checkInterval, namespace, constLabels, addresses.Account),
-		erc20Metrics:             jobs.NewERC20(client, log, checkInterval, namespace, constLabels, addresses.ERC20),
-		erc721Metrics:            jobs.NewERC721(client, log, checkInterval, namespace, constLabels, addresses.ERC721),
-		erc1155Metrics:           jobs.NewERC1155(client, log, checkInterval, namespace, constLabels, addresses.ERC1155),
-		erc4626Metrics:           jobs.NewERC4626(client, log, checkInterval, namespace, constLabels, addresses.ERC4626),
-		uniswapPairMetrics:       jobs.NewUniswapPair(client, log, checkInterval, namespace, constLabels, addresses.UniswapPair),
-		chainlinkDataFeedMetrics: jobs.NewChainlinkDataFeed(client, log, checkInterval, namespace, constLabels, addresses.ChainlinkDataFeed),
-		erc4337Metrics:           jobs.NewERC4337(client, log, checkInterval, namespace, constLabels, addresses.ERC4337),
+		accountMetrics:           jobs.NewAccount(clients, log, checkInterval, namespace, constLabels, addresses.Account),
+		erc20Metrics:             jobs.NewERC20(clients, log, checkInterval, namespace, constLabels, addresses.ERC20),
+		erc721Metrics:            jobs.NewERC721(clients, log, checkInterval, namespace, constLabels, addresses.ERC721),
+		erc1155Metrics:           jobs.NewERC1155(clients, log, checkInterval, namespace, constLabels, addresses.ERC1155),
+		erc4626Metrics:           jobs.NewERC4626(clients, log, checkInterval, namespace, constLabels, addresses.ERC4626),
+		uniswapPairMetrics:       jobs.NewUniswapPair(clients, log, checkInterval, namespace, constLabels, addresses.UniswapPair),
+		chainlinkDataFeedMetrics: jobs.NewChainlinkDataFeed(clients, log, checkInterval, namespace, constLabels, addresses.ChainlinkDataFeed),
+		erc4337Metrics:           jobs.NewERC4337(clients, log, checkInterval, namespace, constLabels, addresses.ERC4337),
 
-		enabledJobs: make(map[string]bool),
+		enabledJobs: make(map[string]bool, 8),
 	}
 
 	m.log.Info("Enabling address metrics")

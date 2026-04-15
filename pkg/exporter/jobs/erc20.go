@@ -4,14 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 )
 
 // ERC20 exposes metrics for ethereum ERC20 contract by address.
 type ERC20 struct {
-	client        api.ExecutionClient
+	clients       []api.ExecutionClient
 	log           logrus.FieldLogger
 	ERC20Balance  prometheus.GaugeVec
 	ERC20Error    prometheus.CounterVec
@@ -27,6 +28,9 @@ type AddressERC20 struct {
 	Labels   map[string]string `yaml:"labels"`
 }
 
+// GetName returns the configured name of this address.
+func (a *AddressERC20) GetName() string { return a.Name }
+
 const (
 	NameERC20 = "erc20"
 )
@@ -36,14 +40,15 @@ func (n *ERC20) Name() string {
 }
 
 // NewERC20 returns a new ERC20 instance.
-func NewERC20(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressERC20) ERC20 {
+func NewERC20(clients []api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressERC20) ERC20 {
 	namespace += "_" + NameERC20
 
 	labelsMap := map[string]int{
-		LabelName:     0,
-		LabelAddress:  1,
-		LabelContract: 2,
-		LabelSymbol:   3,
+		LabelName:      0,
+		LabelAddress:   1,
+		LabelContract:  2,
+		LabelSymbol:    3,
+		LabelExecution: 4,
 	}
 
 	for address := range addresses {
@@ -60,7 +65,7 @@ func NewERC20(client api.ExecutionClient, log logrus.FieldLogger, checkInterval 
 	}
 
 	instance := ERC20{
-		client:        client,
+		clients:       clients,
 		log:           log.WithField("module", NameERC20),
 		addresses:     addresses,
 		checkInterval: checkInterval,
@@ -104,17 +109,21 @@ func (n *ERC20) Start(ctx context.Context) {
 	}
 }
 
-//nolint:unparam // context will be used in the future
 func (n *ERC20) tick(ctx context.Context) {
-	for _, address := range n.addresses {
-		err := n.getBalance(address)
-		if err != nil {
-			n.log.WithError(err).WithField("address", address).Error("Failed to get erc20 contract balanceOf address")
+	for _, client := range n.clients {
+		for _, address := range n.addresses {
+			err := n.getBalance(ctx, client, address)
+			if err != nil {
+				n.log.WithError(err).WithFields(logrus.Fields{
+					"address":   address,
+					"execution": client.Name(),
+				}).Error("Failed to get erc20 contract balanceOf address")
+			}
 		}
 	}
 }
 
-func (n *ERC20) getLabelValues(address *AddressERC20, symbol string) []string {
+func (n *ERC20) getLabelValues(address *AddressERC20, symbol, executionName string) []string {
 	values := make([]string, len(n.labelsMap))
 
 	for label, index := range n.labelsMap {
@@ -130,6 +139,8 @@ func (n *ERC20) getLabelValues(address *AddressERC20, symbol string) []string {
 				values[index] = address.Contract
 			case LabelSymbol:
 				values[index] = symbol
+			case LabelExecution:
+				values[index] = executionName
 			default:
 				values[index] = LabelDefaultValue
 			}
@@ -139,21 +150,21 @@ func (n *ERC20) getLabelValues(address *AddressERC20, symbol string) []string {
 	return values
 }
 
-func (n *ERC20) getBalance(address *AddressERC20) error {
+func (n *ERC20) getBalance(ctx context.Context, client api.ExecutionClient, address *AddressERC20) error {
 	var err error
 
 	symbol := ""
 
 	defer func() {
 		if err != nil {
-			n.ERC20Error.WithLabelValues(n.getLabelValues(address, symbol)...).Inc()
+			n.ERC20Error.WithLabelValues(n.getLabelValues(address, symbol, client.Name())...).Inc()
 		}
 	}()
 
 	// call balanceOf(address) which is 0x70a08231
 	balanceOfData := "0x70a08231000000000000000000000000" + address.Address[2:]
 
-	balanceStr, err := n.client.ETHCall(&api.ETHCallTransaction{
+	balanceStr, err := client.ETHCall(ctx, &api.ETHCallTransaction{
 		To:   address.Contract,
 		Data: &balanceOfData,
 	}, "latest")
@@ -164,7 +175,7 @@ func (n *ERC20) getBalance(address *AddressERC20) error {
 	// call symbol() which is 0x95d89b41
 	symbolData := "0x95d89b41000000000000000000000000"
 
-	symbolHex, err := n.client.ETHCall(&api.ETHCallTransaction{
+	symbolHex, err := client.ETHCall(ctx, &api.ETHCallTransaction{
 		To:   address.Contract,
 		Data: &symbolData,
 	}, "latest")
@@ -177,7 +188,7 @@ func (n *ERC20) getBalance(address *AddressERC20) error {
 		return err
 	}
 
-	n.ERC20Balance.WithLabelValues(n.getLabelValues(address, symbol)...).Set(hexStringToFloat64(balanceStr))
+	n.ERC20Balance.WithLabelValues(n.getLabelValues(address, symbol, client.Name())...).Set(hexStringToFloat64(balanceStr))
 
 	return nil
 }

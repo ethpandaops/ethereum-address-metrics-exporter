@@ -1,6 +1,7 @@
 package exporter
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,12 +11,13 @@ import (
 // Config holds the configuration for the ethereum sync status tool.
 type Config struct {
 	GlobalConfig GlobalConfig `yaml:"global"`
-	// Execution is the execution node to use.
-	Execution ExecutionNode `yaml:"execution"`
+	// Execution is the list of execution nodes to query.
+	Execution []*ExecutionNode `yaml:"execution"`
 	// Addresses is the list of addresses to monitor.
 	Addresses Addresses `yaml:"addresses"`
 }
 
+// GlobalConfig holds global configuration settings.
 type GlobalConfig struct {
 	LoggingLevel  string            `yaml:"logging" default:"warn"`
 	MetricsAddr   string            `yaml:"metricsAddr" default:":9090"`
@@ -26,11 +28,13 @@ type GlobalConfig struct {
 
 // ExecutionNode represents a single ethereum execution client.
 type ExecutionNode struct {
+	Name    string            `yaml:"name"`
 	URL     string            `yaml:"url" default:"http://localhost:8545"`
 	Headers map[string]string `yaml:"headers"`
 	Timeout time.Duration     `yaml:"timeout" default:"10s"`
 }
 
+// Addresses holds all address types to monitor.
 type Addresses struct {
 	Account           []*jobs.AddressAccount           `yaml:"account"`
 	ERC20             []*jobs.AddressERC20             `yaml:"erc20"`
@@ -42,86 +46,63 @@ type Addresses struct {
 	ERC4337           []*jobs.AddressERC4337           `yaml:"erc4337"`
 }
 
+// named is implemented by address types that have a Name field.
+type named interface {
+	GetName() string
+}
+
+// checkDuplicateNames validates that no two entries in a slice share the same name.
+func checkDuplicateNames[T named](items []T, typeName string) error {
+	seen := make(map[string]struct{}, len(items))
+
+	for _, item := range items {
+		name := item.GetName()
+		if _, ok := seen[name]; ok {
+			return fmt.Errorf("duplicate %s address with the same name: %s", typeName, name)
+		}
+
+		seen[name] = struct{}{}
+	}
+
+	return nil
+}
+
 func (c *Config) Validate() error {
-	// Check that all account addresses have different names
-	duplicates := make(map[string]struct{})
-	for _, u := range c.Addresses.Account {
-		// Check that all addresses have different names
-		if _, ok := duplicates[u.Name]; ok {
-			return fmt.Errorf("there's a duplicate account addresses with the same name: %s", u.Name)
-		}
-
-		duplicates[u.Name] = struct{}{}
+	if len(c.Execution) == 0 {
+		return errors.New("at least one execution node must be configured")
 	}
 
-	duplicates = make(map[string]struct{})
-	for _, u := range c.Addresses.ERC20 {
-		// Check that all addresses have different names
-		if _, ok := duplicates[u.Name]; ok {
-			return fmt.Errorf("there's a duplicate erc20 addresses with the same name: %s", u.Name)
+	execNames := make(map[string]struct{}, len(c.Execution))
+
+	for i, node := range c.Execution {
+		if node.Name == "" {
+			return fmt.Errorf("execution node at index %d must have a name", i)
 		}
 
-		duplicates[u.Name] = struct{}{}
+		if _, ok := execNames[node.Name]; ok {
+			return fmt.Errorf("duplicate execution node with the same name: %s", node.Name)
+		}
+
+		execNames[node.Name] = struct{}{}
 	}
 
-	duplicates = make(map[string]struct{})
-	for _, u := range c.Addresses.ERC721 {
-		// Check that all addresses have different names
-		if _, ok := duplicates[u.Name]; ok {
-			return fmt.Errorf("there's a duplicate erc721 addresses with the same name: %s", u.Name)
-		}
-
-		duplicates[u.Name] = struct{}{}
+	checks := []struct {
+		err error
+	}{
+		{checkDuplicateNames(c.Addresses.Account, "account")},
+		{checkDuplicateNames(c.Addresses.ERC20, "erc20")},
+		{checkDuplicateNames(c.Addresses.ERC721, "erc721")},
+		{checkDuplicateNames(c.Addresses.ERC1155, "erc1155")},
+		{checkDuplicateNames(c.Addresses.ERC4626, "erc4626")},
+		{checkDuplicateNames(c.Addresses.UniswapPair, "uniswap pair")},
+		{checkDuplicateNames(c.Addresses.ChainlinkDataFeed, "chainlink data feed")},
+		{checkDuplicateNames(c.Addresses.ERC4337, "erc4337")},
 	}
 
-	duplicates = make(map[string]struct{})
-	for _, u := range c.Addresses.ERC1155 {
-		// Check that all addresses have different names
-		if _, ok := duplicates[u.Name]; ok {
-			return fmt.Errorf("there's a duplicate erc1155 addresses with the same name: %s", u.Name)
+	for _, check := range checks {
+		if check.err != nil {
+			return check.err
 		}
-
-		duplicates[u.Name] = struct{}{}
-	}
-
-	duplicates = make(map[string]struct{})
-	for _, u := range c.Addresses.UniswapPair {
-		// Check that all addresses have different names
-		if _, ok := duplicates[u.Name]; ok {
-			return fmt.Errorf("there's a duplicate uniswap pair addresses with the same name: %s", u.Name)
-		}
-
-		duplicates[u.Name] = struct{}{}
-	}
-
-	duplicates = make(map[string]struct{})
-	for _, u := range c.Addresses.ERC4626 {
-		// Check that all addresses have different names
-		if _, ok := duplicates[u.Name]; ok {
-			return fmt.Errorf("there's a duplicate erc4626 addresses with the same name: %s", u.Name)
-		}
-
-		duplicates[u.Name] = struct{}{}
-	}
-
-	duplicates = make(map[string]struct{})
-	for _, u := range c.Addresses.ChainlinkDataFeed {
-		// Check that all addresses have different names
-		if _, ok := duplicates[u.Name]; ok {
-			return fmt.Errorf("there's a duplicate chainlink data feed addresses with the same name: %s", u.Name)
-		}
-
-		duplicates[u.Name] = struct{}{}
-	}
-
-	duplicates = make(map[string]struct{})
-	for _, u := range c.Addresses.ERC4337 {
-		// Check that all addresses have different names
-		if _, ok := duplicates[u.Name]; ok {
-			return fmt.Errorf("there's a duplicate erc4337 addresses with the same name: %s", u.Name)
-		}
-
-		duplicates[u.Name] = struct{}{}
 	}
 
 	return nil

@@ -1,15 +1,19 @@
-# 🦄 Ethereum Address Metrics Exporter 🦄
+# Ethereum Address Metrics Exporter
 
 A Prometheus metrics exporter for Ethereum externally owned account and contract addresses including;
 
 - [Externally owned account and contract](https://ethereum.org/en/developers/docs/accounts) addresses
 - [ERC20](https://eips.ethereum.org/EIPS/eip-20) contracts
-- [ERC721](https://eips.ethereum.org/EIPS/eip-20) contracts
-- [ERC1155](https://eips.ethereum.org/EIPS/eip-20) contracts
+- [ERC721](https://eips.ethereum.org/EIPS/eip-721) contracts
+- [ERC1155](https://eips.ethereum.org/EIPS/eip-1155) contracts
 - [ERC4626](https://eips.ethereum.org/EIPS/eip-4626) tokenized vaults
 - [ERC4337](https://eips.ethereum.org/EIPS/eip-4337) account abstraction
 - [Uniswap pair](https://v2.info.uniswap.org/pairs) contracts
 - [Chainlink data feed](https://docs.chain.link/docs/data-feeds/price-feeds/addresses/?network=ethereum) contracts
+
+## Multi-node support
+
+Multiple execution nodes can be configured. Every configured address is queried against **all** execution nodes on each tick. Each metric includes an `execution` label with the node name, enabling cross-node consensus checks in PromQL/Grafana.
 
 # Usage
 Ethereum Address Metrics Exporter requires a config file. An example file can be found [here](https://github.com/ethpandaops/ethereum-address-metrics-exporter/blob/master/example_config.yaml).
@@ -36,9 +40,10 @@ Ethereum Address Metrics Exporter relies entirely on a single `yaml` config file
 | global.namespace | `eth_address` | The prefix added to every metric |
 | global.checkInterval | `15s` | How often the service should check the addresses for balance |
 | global.labels[] |  | Key value pair of labels to add to every metric (optional) |
-| execution.url | `http://localhost:8545` | URL to the execution node |
-| execution.timeout | `10s` | Timeout for requests to the execution node |
-| execution.headers[] |  | Key value pair of headers to add on every request |
+| execution[].name |  | Unique name for the execution node (used as `execution` label) |
+| execution[].url | `http://localhost:8545` | URL to the execution node |
+| execution[].timeout | `10s` | Timeout for requests to the execution node |
+| execution[].headers[] |  | Key value pair of headers to add on every request |
 | addresses.account |  | List of ethereum externally owned account or contract addresses |
 | addresses.account[].name |  | Name of the address, will be a label on the metric |
 | addresses.account[].address |  | Account address |
@@ -94,10 +99,14 @@ global:
     extra: label
 
 execution:
-  url: "http://localhost:8545"
-  timeout: 10s
-  headers:
-    authorization: "Basic abc123"
+  - name: "geth-1"
+    url: "http://localhost:8545"
+    timeout: 10s
+    headers:
+      authorization: "Basic abc123"
+  - name: "nethermind-1"
+    url: "http://localhost:8546"
+    timeout: 10s
 
 addresses:
   account:
@@ -191,17 +200,17 @@ helm install ethereum-address-metrics-exporter ethereum-helm-charts/ethereum-add
    cd ./ethereum-address-metrics-exporter
    ```
 3. Build the binary
-   ```sh  
+   ```sh
     go build -o ethereum-address-metrics-exporter .
    ```
 4. Run the exporter
-   ```sh  
+   ```sh
     ./ethereum-address-metrics-exporter
    ```
 
 ## Contributing
 
-Contributions are greatly appreciated! Pull requests will be reviewed and merged promptly if you're interested in improving the exporter! 
+Contributions are greatly appreciated! Pull requests will be reviewed and merged promptly if you're interested in improving the exporter!
 
 1. Fork the project
 2. Create your feature branch:

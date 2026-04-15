@@ -7,13 +7,17 @@ global:
     extra: label
 
 execution:
-  url: "http://localhost:8545"
-  timeout: 10s
-  headers:
-    authorization: "Basic abc123"
+  - name: "geth-1"
+    url: "http://localhost:8545"
+    timeout: 10s
+    headers:
+      authorization: "Basic abc123"
+  - name: "nethermind-1"
+    url: "http://localhost:8546"
+    timeout: 10s
 
 addresses:
-  contract:
+  account:
     - name: John smith
       address: 0x4B1D3c9BEf9D097F564DcD6cdF4558CB389bE3d5
       # optional metric labels to add to this address

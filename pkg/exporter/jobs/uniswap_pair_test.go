@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -50,10 +51,10 @@ func TestUniswapPair_getBalance(t *testing.T) {
 			log := logrus.New()
 			log.SetLevel(logrus.ErrorLevel)
 
-			namespace := "uniswap_" + string(rune('a'+i))
+			namespace := "uniswap_" + strconv.Itoa(i)
 
 			uniswap := NewUniswapPair(
-				mockClient,
+				mockClients(mockClient),
 				log,
 				15*time.Second,
 				namespace,
@@ -61,7 +62,7 @@ func TestUniswapPair_getBalance(t *testing.T) {
 				[]*AddressUniswapPair{tt.address},
 			)
 
-			err := uniswap.getBalance(tt.address)
+			err := uniswap.getBalance(context.Background(), mockClient, tt.address)
 
 			if (err != nil) != tt.wantError {
 				t.Errorf("getBalance() error = %v, wantError %v", err, tt.wantError)
@@ -106,7 +107,7 @@ func TestUniswapPair_tick(t *testing.T) {
 	}
 
 	uniswap := NewUniswapPair(
-		mockClient,
+		mockClients(mockClient),
 		log,
 		15*time.Second,
 		"test_uniswap_tick",
@@ -117,7 +118,7 @@ func TestUniswapPair_tick(t *testing.T) {
 	ctx := context.Background()
 	uniswap.tick(ctx)
 
-	// Each address requires 1 call (getReserves)
+	// Each address requires 1 call (getReserves), 1 client * 2 addresses
 	expectedCalls := len(addresses)
 	if len(mockClient.callLog) != expectedCalls {
 		t.Errorf("Expected %d RPC calls, got %d", expectedCalls, len(mockClient.callLog))
@@ -141,7 +142,7 @@ func TestUniswapPair_getLabelValues(t *testing.T) {
 	}
 
 	uniswap := NewUniswapPair(
-		&mockExecutionClient{},
+		mockClients(&mockExecutionClient{}),
 		log,
 		15*time.Second,
 		"test_uniswap_labels",
@@ -149,7 +150,7 @@ func TestUniswapPair_getLabelValues(t *testing.T) {
 		addresses,
 	)
 
-	labels := uniswap.getLabelValues(addresses[0])
+	labels := uniswap.getLabelValues(addresses[0], "mock-node")
 
 	if len(labels) != len(uniswap.labelsMap) {
 		t.Errorf("Expected %d label values, got %d", len(uniswap.labelsMap), len(labels))

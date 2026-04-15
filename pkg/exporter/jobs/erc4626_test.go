@@ -2,15 +2,18 @@ package jobs
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
-	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 )
 
 // mockExecutionClient is a mock implementation of the ExecutionClient interface for testing.
 type mockExecutionClient struct {
+	name                    string
 	balanceOfResponse       string
 	convertToAssetsResponse string
 	symbolResponse          string
@@ -30,7 +33,16 @@ type mockCall struct {
 	data string
 }
 
-func (m *mockExecutionClient) ETHCall(transaction *api.ETHCallTransaction, block string) (string, error) {
+func (m *mockExecutionClient) Name() string {
+	if m.name != "" {
+		return m.name
+	}
+
+	return "mock-node"
+}
+
+//nolint:gocognit // mock dispatches to different responses based on function selector
+func (m *mockExecutionClient) ETHCall(_ context.Context, transaction *api.ETHCallTransaction, block string) (string, error) {
 	m.callLog = append(m.callLog, mockCall{
 		to:   transaction.To,
 		data: *transaction.Data,
@@ -97,7 +109,7 @@ func (m *mockExecutionClient) ETHCall(transaction *api.ETHCallTransaction, block
 	return "0x0", nil
 }
 
-func (m *mockExecutionClient) ETHGetBalance(address string, block string) (string, error) {
+func (m *mockExecutionClient) ETHGetBalance(_ context.Context, address string, block string) (string, error) {
 	m.ethGetBalanceCalls++
 
 	if m.ethGetBalanceError != nil {
@@ -111,6 +123,12 @@ func (m *mockExecutionClient) ETHGetBalance(address string, block string) (strin
 	return "0x0", nil
 }
 
+// mockClients wraps a single mock client in a slice for use with job constructors.
+func mockClients(m *mockExecutionClient) []api.ExecutionClient {
+	return []api.ExecutionClient{m}
+}
+
+//nolint:gocognit,funlen // table-driven test with detailed call verification
 func TestERC4626_getAssets(t *testing.T) {
 	tests := []struct {
 		name                    string
@@ -174,10 +192,10 @@ func TestERC4626_getAssets(t *testing.T) {
 			log.SetLevel(logrus.ErrorLevel)
 
 			// Use unique namespace for each test to avoid Prometheus registration conflicts
-			namespace := string(rune('a' + i))
+			namespace := "erc4626_" + strconv.Itoa(i)
 
 			erc4626 := NewERC4626(
-				mockClient,
+				mockClients(mockClient),
 				log,
 				15*time.Second,
 				namespace,
@@ -185,7 +203,7 @@ func TestERC4626_getAssets(t *testing.T) {
 				[]*AddressERC4626{tt.address},
 			)
 
-			err := erc4626.getAssets(tt.address)
+			err := erc4626.getAssets(context.Background(), mockClient, tt.address)
 
 			if (err != nil) != tt.wantError {
 				t.Errorf("getAssets() error = %v, wantError %v", err, tt.wantError)
@@ -262,7 +280,7 @@ func TestERC4626_tick(t *testing.T) {
 	}
 
 	erc4626 := NewERC4626(
-		mockClient,
+		mockClients(mockClient),
 		log,
 		15*time.Second,
 		"test_tick",
@@ -273,7 +291,7 @@ func TestERC4626_tick(t *testing.T) {
 	ctx := context.Background()
 	erc4626.tick(ctx)
 
-	// Verify that tick called getAssets for each address (2 addresses * 3 calls each = 6 total)
+	// Verify that tick called getAssets for each address (1 client * 2 addresses * 3 calls each = 6 total)
 	expectedCalls := len(addresses) * 3
 	if len(mockClient.callLog) != expectedCalls {
 		t.Errorf("Expected %d RPC calls for %d addresses, got %d", expectedCalls, len(addresses), len(mockClient.callLog))
@@ -297,9 +315,9 @@ func TestERC4626_getLabelValues(t *testing.T) {
 	}
 
 	erc4626 := NewERC4626(
-		&mockExecutionClient{
+		mockClients(&mockExecutionClient{
 			symbolResponse: "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000973555344432d5661756c74000000000000000000000000000000000000000000", // "sUSDC-Vault"
-		},
+		}),
 		log,
 		15*time.Second,
 		"test_labels",
@@ -307,7 +325,7 @@ func TestERC4626_getLabelValues(t *testing.T) {
 		addresses,
 	)
 
-	labels := erc4626.getLabelValues(addresses[0], "sUSDC-Vault")
+	labels := erc4626.getLabelValues(addresses[0], "sUSDC-Vault", "mock-node")
 
 	// Verify label values are populated correctly
 	if len(labels) != len(erc4626.labelsMap) {

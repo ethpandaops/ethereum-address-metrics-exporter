@@ -10,6 +10,7 @@ const (
 	LabelAddress      string = "address"
 	LabelContract     string = "contract"
 	LabelDefaultValue string = ""
+	LabelExecution    string = "execution"
 	LabelFrom         string = "from"
 	LabelName         string = "name"
 	LabelSymbol       string = "symbol"

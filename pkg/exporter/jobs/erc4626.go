@@ -6,14 +6,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 )
 
 // ERC4626 exposes metrics for ethereum ERC4626 vault contracts.
 type ERC4626 struct {
-	client        api.ExecutionClient
+	clients       []api.ExecutionClient
 	log           logrus.FieldLogger
 	ERC4626Assets prometheus.GaugeVec
 	ERC4626Error  prometheus.CounterVec
@@ -29,6 +30,9 @@ type AddressERC4626 struct {
 	Labels   map[string]string `yaml:"labels"`
 }
 
+// GetName returns the configured name of this address.
+func (a *AddressERC4626) GetName() string { return a.Name }
+
 const (
 	NameERC4626 = "erc4626"
 )
@@ -38,14 +42,15 @@ func (n *ERC4626) Name() string {
 }
 
 // NewERC4626 returns a new ERC4626 instance.
-func NewERC4626(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressERC4626) ERC4626 {
+func NewERC4626(clients []api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressERC4626) ERC4626 {
 	namespace += "_" + NameERC4626
 
 	labelsMap := map[string]int{
-		LabelName:     0,
-		LabelAddress:  1,
-		LabelContract: 2,
-		LabelSymbol:   3,
+		LabelName:      0,
+		LabelAddress:   1,
+		LabelContract:  2,
+		LabelSymbol:    3,
+		LabelExecution: 4,
 	}
 
 	for address := range addresses {
@@ -62,7 +67,7 @@ func NewERC4626(client api.ExecutionClient, log logrus.FieldLogger, checkInterva
 	}
 
 	instance := ERC4626{
-		client:        client,
+		clients:       clients,
 		log:           log.WithField("module", NameERC4626),
 		addresses:     addresses,
 		checkInterval: checkInterval,
@@ -106,17 +111,21 @@ func (n *ERC4626) Start(ctx context.Context) {
 	}
 }
 
-//nolint:unparam // context will be used in the future
 func (n *ERC4626) tick(ctx context.Context) {
-	for _, address := range n.addresses {
-		err := n.getAssets(address)
-		if err != nil {
-			n.log.WithError(err).WithField("address", address).Error("Failed to get ERC4626 vault assets")
+	for _, client := range n.clients {
+		for _, address := range n.addresses {
+			err := n.getAssets(ctx, client, address)
+			if err != nil {
+				n.log.WithError(err).WithFields(logrus.Fields{
+					"address":   address,
+					"execution": client.Name(),
+				}).Error("Failed to get ERC4626 vault assets")
+			}
 		}
 	}
 }
 
-func (n *ERC4626) getLabelValues(address *AddressERC4626, symbol string) []string {
+func (n *ERC4626) getLabelValues(address *AddressERC4626, symbol, executionName string) []string {
 	values := make([]string, len(n.labelsMap))
 
 	for label, index := range n.labelsMap {
@@ -132,6 +141,8 @@ func (n *ERC4626) getLabelValues(address *AddressERC4626, symbol string) []strin
 				values[index] = address.Contract
 			case LabelSymbol:
 				values[index] = symbol
+			case LabelExecution:
+				values[index] = executionName
 			default:
 				values[index] = LabelDefaultValue
 			}
@@ -141,14 +152,14 @@ func (n *ERC4626) getLabelValues(address *AddressERC4626, symbol string) []strin
 	return values
 }
 
-func (n *ERC4626) getAssets(address *AddressERC4626) error {
+func (n *ERC4626) getAssets(ctx context.Context, client api.ExecutionClient, address *AddressERC4626) error {
 	var err error
 
 	symbol := ""
 
 	defer func() {
 		if err != nil {
-			n.ERC4626Error.WithLabelValues(n.getLabelValues(address, symbol)...).Inc()
+			n.ERC4626Error.WithLabelValues(n.getLabelValues(address, symbol, client.Name())...).Inc()
 		}
 	}()
 
@@ -156,7 +167,7 @@ func (n *ERC4626) getAssets(address *AddressERC4626) error {
 	// Function selector for balanceOf(address) is 0x70a08231
 	balanceOfData := "0x70a08231000000000000000000000000" + address.Address[2:]
 
-	sharesStr, err := n.client.ETHCall(&api.ETHCallTransaction{
+	sharesStr, err := client.ETHCall(ctx, &api.ETHCallTransaction{
 		To:   address.Contract,
 		Data: &balanceOfData,
 	}, "latest")
@@ -179,7 +190,7 @@ func (n *ERC4626) getAssets(address *AddressERC4626) error {
 	// Function selector for convertToAssets(uint256) is 0x07a2d13a
 	convertToAssetsData := "0x07a2d13a" + shares
 
-	assetsStr, err := n.client.ETHCall(&api.ETHCallTransaction{
+	assetsStr, err := client.ETHCall(ctx, &api.ETHCallTransaction{
 		To:   address.Contract,
 		Data: &convertToAssetsData,
 	}, "latest")
@@ -191,7 +202,7 @@ func (n *ERC4626) getAssets(address *AddressERC4626) error {
 	// Function selector for symbol() is 0x95d89b41
 	symbolData := "0x95d89b41000000000000000000000000"
 
-	symbolHex, err := n.client.ETHCall(&api.ETHCallTransaction{
+	symbolHex, err := client.ETHCall(ctx, &api.ETHCallTransaction{
 		To:   address.Contract,
 		Data: &symbolData,
 	}, "latest")
@@ -204,7 +215,7 @@ func (n *ERC4626) getAssets(address *AddressERC4626) error {
 		return err
 	}
 
-	n.ERC4626Assets.WithLabelValues(n.getLabelValues(address, symbol)...).Set(hexStringToFloat64(assetsStr))
+	n.ERC4626Assets.WithLabelValues(n.getLabelValues(address, symbol, client.Name())...).Set(hexStringToFloat64(assetsStr))
 
 	return nil
 }

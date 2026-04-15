@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -62,10 +63,10 @@ func TestAccount_getBalance(t *testing.T) {
 			log := logrus.New()
 			log.SetLevel(logrus.ErrorLevel)
 
-			namespace := string(rune('a' + i))
+			namespace := "account_test_" + strconv.Itoa(i)
 
 			account := NewAccount(
-				mockClient,
+				mockClients(mockClient),
 				log,
 				15*time.Second,
 				namespace,
@@ -73,7 +74,7 @@ func TestAccount_getBalance(t *testing.T) {
 				[]*AddressAccount{tt.address},
 			)
 
-			err := account.getBalance(tt.address)
+			err := account.getBalance(context.Background(), mockClient, tt.address)
 
 			if (err != nil) != tt.wantError {
 				t.Errorf("getBalance() error = %v, wantError %v", err, tt.wantError)
@@ -104,7 +105,7 @@ func TestAccount_tick(t *testing.T) {
 	}
 
 	account := NewAccount(
-		mockClient,
+		mockClients(mockClient),
 		log,
 		15*time.Second,
 		"test_account_tick",
@@ -116,7 +117,7 @@ func TestAccount_tick(t *testing.T) {
 	account.tick(ctx)
 
 	// ETHGetBalance calls are tracked differently than ETHCall
-	// The mock should have been called for each address
+	// The mock should have been called for each address (1 client * 2 addresses)
 	if mockClient.ethGetBalanceCalls != len(addresses) {
 		t.Errorf("Expected %d ETHGetBalance calls, got %d", len(addresses), mockClient.ethGetBalanceCalls)
 	}
@@ -138,7 +139,7 @@ func TestAccount_getLabelValues(t *testing.T) {
 	}
 
 	account := NewAccount(
-		&mockExecutionClient{},
+		mockClients(&mockExecutionClient{}),
 		log,
 		15*time.Second,
 		"test_account_labels",
@@ -146,7 +147,7 @@ func TestAccount_getLabelValues(t *testing.T) {
 		addresses,
 	)
 
-	labels := account.getLabelValues(addresses[0])
+	labels := account.getLabelValues(addresses[0], "mock-node")
 
 	if len(labels) != len(account.labelsMap) {
 		t.Errorf("Expected %d label values, got %d", len(account.labelsMap), len(labels))
