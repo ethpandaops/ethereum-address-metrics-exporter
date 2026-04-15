@@ -4,14 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 )
 
 // ERC4337 exposes metrics for ethereum ERC4337 EntryPoint contract by address.
 type ERC4337 struct {
-	client         api.ExecutionClient
+	clients        []api.ExecutionClient
 	log            logrus.FieldLogger
 	ERC4337Balance prometheus.GaugeVec
 	ERC4337Error   prometheus.CounterVec
@@ -27,6 +28,9 @@ type AddressERC4337 struct {
 	Labels   map[string]string `yaml:"labels"`
 }
 
+// GetName returns the configured name of this address.
+func (a *AddressERC4337) GetName() string { return a.Name }
+
 const (
 	NameERC4337 = "erc4337"
 )
@@ -36,13 +40,14 @@ func (n *ERC4337) Name() string {
 }
 
 // NewERC4337 returns a new ERC4337 instance.
-func NewERC4337(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressERC4337) ERC4337 {
+func NewERC4337(clients []api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressERC4337) ERC4337 {
 	namespace += "_" + NameERC4337
 
 	labelsMap := map[string]int{
-		LabelName:     0,
-		LabelAddress:  1,
-		LabelContract: 2,
+		LabelName:      0,
+		LabelAddress:   1,
+		LabelContract:  2,
+		LabelExecution: 3,
 	}
 
 	for address := range addresses {
@@ -59,7 +64,7 @@ func NewERC4337(client api.ExecutionClient, log logrus.FieldLogger, checkInterva
 	}
 
 	instance := ERC4337{
-		client:        client,
+		clients:       clients,
 		log:           log.WithField("module", NameERC4337),
 		addresses:     addresses,
 		checkInterval: checkInterval,
@@ -103,17 +108,21 @@ func (n *ERC4337) Start(ctx context.Context) {
 	}
 }
 
-//nolint:unparam // context will be used in the future
 func (n *ERC4337) tick(ctx context.Context) {
-	for _, address := range n.addresses {
-		err := n.getBalance(address)
-		if err != nil {
-			n.log.WithError(err).WithField("address", address).Error("Failed to get erc4337 contract balanceOf address")
+	for _, client := range n.clients {
+		for _, address := range n.addresses {
+			err := n.getBalance(ctx, client, address)
+			if err != nil {
+				n.log.WithError(err).WithFields(logrus.Fields{
+					"address":   address,
+					"execution": client.Name(),
+				}).Error("Failed to get erc4337 contract balanceOf address")
+			}
 		}
 	}
 }
 
-func (n *ERC4337) getLabelValues(address *AddressERC4337) []string {
+func (n *ERC4337) getLabelValues(address *AddressERC4337, executionName string) []string {
 	values := make([]string, len(n.labelsMap))
 
 	for label, index := range n.labelsMap {
@@ -127,6 +136,8 @@ func (n *ERC4337) getLabelValues(address *AddressERC4337) []string {
 				values[index] = address.Address
 			case LabelContract:
 				values[index] = address.Contract
+			case LabelExecution:
+				values[index] = executionName
 			default:
 				values[index] = LabelDefaultValue
 			}
@@ -136,12 +147,12 @@ func (n *ERC4337) getLabelValues(address *AddressERC4337) []string {
 	return values
 }
 
-func (n *ERC4337) getBalance(address *AddressERC4337) error {
+func (n *ERC4337) getBalance(ctx context.Context, client api.ExecutionClient, address *AddressERC4337) error {
 	var err error
 
 	defer func() {
 		if err != nil {
-			n.ERC4337Error.WithLabelValues(n.getLabelValues(address)...).Inc()
+			n.ERC4337Error.WithLabelValues(n.getLabelValues(address, client.Name())...).Inc()
 		}
 	}()
 
@@ -149,7 +160,7 @@ func (n *ERC4337) getBalance(address *AddressERC4337) error {
 	// This is the standard ERC20 balanceOf signature, which EntryPoint also uses for deposits
 	balanceOfData := "0x70a08231000000000000000000000000" + address.Address[2:]
 
-	balanceStr, err := n.client.ETHCall(&api.ETHCallTransaction{
+	balanceStr, err := client.ETHCall(ctx, &api.ETHCallTransaction{
 		To:   address.Contract,
 		Data: &balanceOfData,
 	}, "latest")
@@ -157,7 +168,7 @@ func (n *ERC4337) getBalance(address *AddressERC4337) error {
 		return err
 	}
 
-	n.ERC4337Balance.WithLabelValues(n.getLabelValues(address)...).Set(hexStringToFloat64(balanceStr))
+	n.ERC4337Balance.WithLabelValues(n.getLabelValues(address, client.Name())...).Set(hexStringToFloat64(balanceStr))
 
 	return nil
 }

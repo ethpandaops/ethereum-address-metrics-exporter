@@ -1,5 +1,5 @@
 # Multi-stage build for lab-backend
-FROM golang:1.25.1-alpine AS builder
+FROM golang:1.26.1-alpine AS builder
 
 RUN apk add --no-cache make git ca-certificates
 

@@ -1,93 +1,109 @@
 version: "2"
+
 run:
-  issues-exit-code: 1
+  timeout: 5m
+
 linters:
   default: none
   enable:
-    - asasalint
     - bidichk
     - bodyclose
-    - containedctx
     - copyloopvar
-    - decorder
-    - dogsled
-    - durationcheck
+    - cyclop
+    - dupword
     - errcheck
     - errname
+    - errorlint
+    - exhaustive
+    - exptostd
+    - fatcontext
+    - funlen
     - goconst
-    - gocyclo
-    - godot
-    - goheader
-    - goprintffuncname
+    - gocognit
+    - gocritic
     - gosec
     - govet
     - ineffassign
+    - intrange
     - misspell
-    - nakedret
+    - modernize
+    - nestif
     - nilerr
-    - nilnil
-    - nlreturn
+    - noctx
     - nolintlint
-    - nosprintfhostport
-    - prealloc
+    - perfsprint
     - predeclared
-    - promlinter
-    - reassign
+    - revive
+    - sloglint
     - staticcheck
     - tagliatelle
-    - thelper
+    - testifylint
     - tparallel
     - unconvert
+    - usetesting
+    - unparam
     - unused
+    - usestdlibvars
+    - wastedassign
     - whitespace
-    - wsl_v5
+
   settings:
+    cyclop:
+      max-complexity: 30
+
+    funlen:
+      lines: 100
+      statements: 50
+
+    gocognit:
+      min-complexity: 20
+
     errcheck:
       check-type-assertions: true
-    goconst:
-      min-len: 2
-      min-occurrences: 3
-    gocritic:
-      enabled-tags:
-        - diagnostic
-        - experimental
-        - opinionated
-        - performance
-        - style
+
+    tagliatelle:
+      case:
+        rules:
+          yaml: camel
+          json: camel
+
+    revive:
+      rules:
+        - name: unexported-return
+          disabled: true
+
     govet:
-      enable:
-        - shadow
+      enable-all: true
+      disable:
+        - fieldalignment
+      settings:
+        shadow:
+          strict: true
+
     nolintlint:
       require-explanation: true
       require-specific: true
-    wsl_v5:
-      allow-first-in-block: true
-      allow-whole-block: false
-      branch-max-lines: 2
+
+    sloglint:
+      no-global: all
+      context: scope
+
+    staticcheck:
+      checks:
+        - all
+
   exclusions:
-    generated: lax
     presets:
       - comments
       - common-false-positives
       - legacy
       - std-error-handling
-    rules:
-      - linters:
-          - gocritic
-          - gosec
-          - wsl
-        path: _test\.go
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+
 formatters:
   enable:
-    - gofmt
+    - gofumpt
     - goimports
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/ethpandaops/ethereum-address-metrics-exporter

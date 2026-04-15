@@ -2,10 +2,13 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -13,12 +16,15 @@ import (
 
 // ExecutionClient is an interface for executing RPC calls to the Ethereum node.
 type ExecutionClient interface {
+	// Name returns the configured name of this execution client.
+	Name() string
 	// ETHCall executes a new message call immediately without creating a transaction on the block chain.
-	ETHCall(transaction *ETHCallTransaction, block string) (string, error)
+	ETHCall(ctx context.Context, transaction *ETHCallTransaction, block string) (string, error)
 	// ETHGetBalance returns the balance of the account of given address.
-	ETHGetBalance(address string, block string) (string, error)
+	ETHGetBalance(ctx context.Context, address string, block string) (string, error)
 }
 
+// ETHCallTransaction represents an eth_call transaction object.
 type ETHCallTransaction struct {
 	From     *string `json:"from"`
 	To       string  `json:"to"`
@@ -29,7 +35,9 @@ type ETHCallTransaction struct {
 }
 
 type executionClient struct {
+	name    string
 	url     string
+	path    string
 	log     logrus.FieldLogger
 	client  http.Client
 	headers map[string]string
@@ -37,20 +45,34 @@ type executionClient struct {
 	metrics Metrics
 }
 
-// NewExecutionClient creates a new ExecutionClient.
-func NewExecutionClient(log logrus.FieldLogger, namespace, url string, headers map[string]string, timeout time.Duration) ExecutionClient {
+// NewExecutionClient creates a new ExecutionClient. The provided Metrics
+// instance is shared across all clients so each call must not register its
+// own collectors with Prometheus.
+func NewExecutionClient(log logrus.FieldLogger, metrics Metrics, name, rawURL string, headers map[string]string, timeout time.Duration) ExecutionClient {
 	client := http.Client{
 		Timeout: timeout,
 	}
 
+	path := "/"
+	if parsed, err := url.Parse(rawURL); err == nil && parsed.Path != "" {
+		path = parsed.Path
+	}
+
 	return &executionClient{
-		url:     url,
+		name:    name,
+		url:     rawURL,
+		path:    path,
 		log:     log,
 		client:  client,
 		headers: headers,
 
-		metrics: NewMetrics(fmt.Sprintf("%s_%s", namespace, "http")),
+		metrics: metrics,
 	}
+}
+
+// Name returns the configured name of this execution client.
+func (e *executionClient) Name() string {
+	return e.name
 }
 
 type apiResponse struct {
@@ -59,13 +81,12 @@ type apiResponse struct {
 	Result  json.RawMessage `json:"result"`
 }
 
-//nolint:unparam // ctx will probably be used in the future
-func (e *executionClient) post(method string, params interface{}, id int) (json.RawMessage, error) {
+func (e *executionClient) post(ctx context.Context, method string, params any, id int) (json.RawMessage, error) {
 	start := time.Now()
 
 	httpMethod := "POST"
 
-	e.metrics.ObserveRequest(httpMethod, e.url, method)
+	e.metrics.ObserveRequest(httpMethod, e.path, method, e.name)
 
 	var rsp *http.Response
 
@@ -74,13 +95,13 @@ func (e *executionClient) post(method string, params interface{}, id int) (json.
 	defer func() {
 		rspCode := "none"
 		if rsp != nil {
-			rspCode = fmt.Sprintf("%d", rsp.StatusCode)
+			rspCode = strconv.Itoa(rsp.StatusCode)
 		}
 
-		e.metrics.ObserveResponse(httpMethod, e.url, method, rspCode, time.Since(start))
+		e.metrics.ObserveResponse(httpMethod, e.path, method, rspCode, e.name, time.Since(start))
 	}()
 
-	body := map[string]interface{}{
+	body := map[string]any{
 		"jsonrpc": "2.0",
 		"method":  method,
 		"id":      id,
@@ -92,7 +113,7 @@ func (e *executionClient) post(method string, params interface{}, id int) (json.
 		return nil, err
 	}
 
-	req, err := http.NewRequest(httpMethod, e.url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, httpMethod, e.url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
@@ -120,46 +141,49 @@ func (e *executionClient) post(method string, params interface{}, id int) (json.
 	}
 
 	resp := new(apiResponse)
-	if err := json.Unmarshal(data, resp); err != nil {
-		return nil, err
+
+	if unmarshalErr := json.Unmarshal(data, resp); unmarshalErr != nil {
+		return nil, unmarshalErr
 	}
 
 	return resp.Result, nil
 }
 
-func (e *executionClient) ETHCall(transaction *ETHCallTransaction, block string) (string, error) {
-	params := []interface{}{
+func (e *executionClient) ETHCall(ctx context.Context, transaction *ETHCallTransaction, block string) (string, error) {
+	params := []any{
 		transaction,
 		block,
 	}
 
-	rsp, err := e.post("eth_call", params, 1)
+	rsp, err := e.post(ctx, "eth_call", params, 1)
 	if err != nil {
 		return "", err
 	}
 
 	ethCall := ""
-	if err := json.Unmarshal(rsp, &ethCall); err != nil {
-		return "", err
+
+	if unmarshalErr := json.Unmarshal(rsp, &ethCall); unmarshalErr != nil {
+		return "", unmarshalErr
 	}
 
 	return ethCall, nil
 }
 
-func (e *executionClient) ETHGetBalance(address, block string) (string, error) {
-	params := []interface{}{
+func (e *executionClient) ETHGetBalance(ctx context.Context, address, block string) (string, error) {
+	params := []any{
 		address,
 		block,
 	}
 
-	rsp, err := e.post("eth_getBalance", params, 1)
+	rsp, err := e.post(ctx, "eth_getBalance", params, 1)
 	if err != nil {
 		return "", err
 	}
 
 	ethGetBalance := ""
-	if err := json.Unmarshal(rsp, &ethGetBalance); err != nil {
-		return "", err
+
+	if unmarshalErr := json.Unmarshal(rsp, &ethGetBalance); unmarshalErr != nil {
+		return "", unmarshalErr
 	}
 
 	return ethGetBalance, nil

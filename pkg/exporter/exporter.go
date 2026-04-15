@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 )
 
 // Exporter defines the Ethereum Metrics Exporter interface.
@@ -34,7 +35,7 @@ type exporter struct {
 	log logrus.FieldLogger
 	Cfg *Config
 
-	execution api.ExecutionClient
+	clients []api.ExecutionClient
 	// Metrics
 	metrics Metrics
 }
@@ -42,13 +43,38 @@ type exporter struct {
 func (e *exporter) Start(ctx context.Context) error {
 	e.log.Info("Initializing...")
 
-	e.execution = api.NewExecutionClient(e.log, e.Cfg.GlobalConfig.Namespace, e.Cfg.Execution.URL, e.Cfg.Execution.Headers, e.Cfg.Execution.Timeout)
+	e.clients = make([]api.ExecutionClient, 0, len(e.Cfg.Execution))
 
-	e.metrics = NewMetrics(e.execution, e.log, e.Cfg.GlobalConfig.CheckInterval, e.Cfg.GlobalConfig.Namespace, e.Cfg.GlobalConfig.Labels, &e.Cfg.Addresses)
+	httpMetrics := api.NewMetrics(e.Cfg.GlobalConfig.Namespace + "_http")
 
-	e.log.
-		WithField("execution_url", e.Cfg.Execution.URL).
-		Info(fmt.Sprintf("Starting metrics server on %v", e.Cfg.GlobalConfig.MetricsAddr))
+	for _, node := range e.Cfg.Execution {
+		client := api.NewExecutionClient(
+			e.log,
+			httpMetrics,
+			node.Name,
+			node.URL,
+			node.Headers,
+			node.Timeout,
+		)
+
+		e.clients = append(e.clients, client)
+
+		e.log.WithFields(logrus.Fields{
+			"name": node.Name,
+			"url":  node.URL,
+		}).Info("Configured execution node")
+	}
+
+	e.metrics = NewMetrics(
+		e.clients,
+		e.log,
+		e.Cfg.GlobalConfig.CheckInterval,
+		e.Cfg.GlobalConfig.Namespace,
+		e.Cfg.GlobalConfig.Labels,
+		&e.Cfg.Addresses,
+	)
+
+	e.log.Info(fmt.Sprintf("Starting metrics server on %v", e.Cfg.GlobalConfig.MetricsAddr))
 
 	http.Handle("/metrics", promhttp.Handler())
 

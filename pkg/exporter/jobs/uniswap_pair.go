@@ -4,14 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 )
 
 // UniswapPair exposes metrics for ethereum uniswap pair contract.
 type UniswapPair struct {
-	client             api.ExecutionClient
+	clients            []api.ExecutionClient
 	log                logrus.FieldLogger
 	UniswapPairBalance prometheus.GaugeVec
 	UniswapPairError   prometheus.CounterVec
@@ -28,6 +29,9 @@ type AddressUniswapPair struct {
 	Labels   map[string]string `yaml:"labels"`
 }
 
+// GetName returns the configured name of this address.
+func (a *AddressUniswapPair) GetName() string { return a.Name }
+
 const (
 	NameUniswapPair = "uniswap_pair"
 )
@@ -37,14 +41,15 @@ func (n *UniswapPair) Name() string {
 }
 
 // NewUniswapPair returns a new UniswapPair instance.
-func NewUniswapPair(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressUniswapPair) UniswapPair {
+func NewUniswapPair(clients []api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressUniswapPair) UniswapPair {
 	namespace += "_" + NameUniswapPair
 
 	labelsMap := map[string]int{
-		LabelName:     0,
-		LabelContract: 1,
-		LabelFrom:     2,
-		LabelTo:       3,
+		LabelName:      0,
+		LabelContract:  1,
+		LabelFrom:      2,
+		LabelTo:        3,
+		LabelExecution: 4,
 	}
 
 	for address := range addresses {
@@ -61,7 +66,7 @@ func NewUniswapPair(client api.ExecutionClient, log logrus.FieldLogger, checkInt
 	}
 
 	instance := UniswapPair{
-		client:        client,
+		clients:       clients,
 		log:           log.WithField("module", NameUniswapPair),
 		addresses:     addresses,
 		checkInterval: checkInterval,
@@ -105,17 +110,21 @@ func (n *UniswapPair) Start(ctx context.Context) {
 	}
 }
 
-//nolint:unparam // context will be used in the future
 func (n *UniswapPair) tick(ctx context.Context) {
-	for _, address := range n.addresses {
-		err := n.getBalance(address)
-		if err != nil {
-			n.log.WithError(err).WithField("address", address).Error("Failed to get uniswap pair balance")
+	for _, client := range n.clients {
+		for _, address := range n.addresses {
+			err := n.getBalance(ctx, client, address)
+			if err != nil {
+				n.log.WithError(err).WithFields(logrus.Fields{
+					"address":   address,
+					"execution": client.Name(),
+				}).Error("Failed to get uniswap pair balance")
+			}
 		}
 	}
 }
 
-func (n *UniswapPair) getLabelValues(address *AddressUniswapPair) []string {
+func (n *UniswapPair) getLabelValues(address *AddressUniswapPair, executionName string) []string {
 	values := make([]string, len(n.labelsMap))
 
 	for label, index := range n.labelsMap {
@@ -131,6 +140,8 @@ func (n *UniswapPair) getLabelValues(address *AddressUniswapPair) []string {
 				values[index] = address.From
 			case LabelTo:
 				values[index] = address.To
+			case LabelExecution:
+				values[index] = executionName
 			default:
 				values[index] = LabelDefaultValue
 			}
@@ -140,19 +151,19 @@ func (n *UniswapPair) getLabelValues(address *AddressUniswapPair) []string {
 	return values
 }
 
-func (n *UniswapPair) getBalance(address *AddressUniswapPair) error {
+func (n *UniswapPair) getBalance(ctx context.Context, client api.ExecutionClient, address *AddressUniswapPair) error {
 	var err error
 
 	defer func() {
 		if err != nil {
-			n.UniswapPairError.WithLabelValues(n.getLabelValues(address)...).Inc()
+			n.UniswapPairError.WithLabelValues(n.getLabelValues(address, client.Name())...).Inc()
 		}
 	}()
 
 	// call getReserves() which is 0x0902f1ac
 	getReservesData := "0x0902f1ac000000000000000000000000"
 
-	balanceStr, err := n.client.ETHCall(&api.ETHCallTransaction{
+	balanceStr, err := client.ETHCall(ctx, &api.ETHCallTransaction{
 		To:   address.Contract,
 		Data: &getReservesData,
 	}, "latest")
@@ -173,7 +184,7 @@ func (n *UniswapPair) getBalance(address *AddressUniswapPair) error {
 	toBalance := hexStringToFloat64("0x" + balanceStr[66:130])
 
 	balance := toBalance / fromBalance
-	n.UniswapPairBalance.WithLabelValues(n.getLabelValues(address)...).Set(balance)
+	n.UniswapPairBalance.WithLabelValues(n.getLabelValues(address, client.Name())...).Set(balance)
 
 	return nil
 }

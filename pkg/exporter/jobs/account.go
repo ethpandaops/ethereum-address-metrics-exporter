@@ -4,14 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 )
 
-// Eth exposes metrics for account addresses.
+// Account exposes metrics for account addresses.
 type Account struct {
-	client         api.ExecutionClient
+	clients        []api.ExecutionClient
 	log            logrus.FieldLogger
 	AccountBalance prometheus.GaugeVec
 	AccountError   prometheus.CounterVec
@@ -26,6 +27,9 @@ type AddressAccount struct {
 	Labels  map[string]string `yaml:"labels"`
 }
 
+// GetName returns the configured name of this address.
+func (a *AddressAccount) GetName() string { return a.Name }
+
 const (
 	NameAccount = "account"
 )
@@ -35,12 +39,13 @@ func (n *Account) Name() string {
 }
 
 // NewAccount returns a new Account instance.
-func NewAccount(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressAccount) Account {
+func NewAccount(clients []api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses []*AddressAccount) Account {
 	namespace += "_" + NameAccount
 
-	labelsMap := map[string]int{}
+	labelsMap := make(map[string]int, 3)
 	labelsMap[LabelName] = 0
 	labelsMap[LabelAddress] = 1
+	labelsMap[LabelExecution] = 2
 
 	for address := range addresses {
 		for label := range addresses[address].Labels {
@@ -56,7 +61,7 @@ func NewAccount(client api.ExecutionClient, log logrus.FieldLogger, checkInterva
 	}
 
 	instance := Account{
-		client:        client,
+		clients:       clients,
 		log:           log.WithField("module", NameAccount),
 		addresses:     addresses,
 		checkInterval: checkInterval,
@@ -101,17 +106,21 @@ func (n *Account) Start(ctx context.Context) {
 	}
 }
 
-//nolint:unparam // context will be used in the future
 func (n *Account) tick(ctx context.Context) {
-	for _, address := range n.addresses {
-		err := n.getBalance(address)
-		if err != nil {
-			n.log.WithError(err).WithField("address", address).Error("Failed to get Account balance")
+	for _, client := range n.clients {
+		for _, address := range n.addresses {
+			err := n.getBalance(ctx, client, address)
+			if err != nil {
+				n.log.WithError(err).WithFields(logrus.Fields{
+					"address":   address,
+					"execution": client.Name(),
+				}).Error("Failed to get Account balance")
+			}
 		}
 	}
 }
 
-func (n *Account) getLabelValues(address *AddressAccount) []string {
+func (n *Account) getLabelValues(address *AddressAccount, executionName string) []string {
 	values := make([]string, len(n.labelsMap))
 
 	for label, index := range n.labelsMap {
@@ -123,6 +132,8 @@ func (n *Account) getLabelValues(address *AddressAccount) []string {
 				values[index] = address.Name
 			case LabelAddress:
 				values[index] = address.Address
+			case LabelExecution:
+				values[index] = executionName
 			default:
 				values[index] = LabelDefaultValue
 			}
@@ -132,22 +143,22 @@ func (n *Account) getLabelValues(address *AddressAccount) []string {
 	return values
 }
 
-func (n *Account) getBalance(address *AddressAccount) error {
+func (n *Account) getBalance(ctx context.Context, client api.ExecutionClient, address *AddressAccount) error {
 	var err error
 
 	defer func() {
 		if err != nil {
-			n.AccountError.WithLabelValues(n.getLabelValues(address)...).Inc()
+			n.AccountError.WithLabelValues(n.getLabelValues(address, client.Name())...).Inc()
 		}
 	}()
 
-	balance, err := n.client.ETHGetBalance(address.Address, "latest")
+	balance, err := client.ETHGetBalance(ctx, address.Address, "latest")
 	if err != nil {
 		return err
 	}
 
 	balanceFloat64 := hexStringToFloat64(balance)
-	n.AccountBalance.WithLabelValues(n.getLabelValues(address)...).Set(balanceFloat64)
+	n.AccountBalance.WithLabelValues(n.getLabelValues(address, client.Name())...).Set(balanceFloat64)
 
 	return nil
 }

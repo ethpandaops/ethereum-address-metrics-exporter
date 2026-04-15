@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -64,10 +65,10 @@ func TestERC20_getBalance(t *testing.T) {
 			log := logrus.New()
 			log.SetLevel(logrus.ErrorLevel)
 
-			namespace := "erc20_" + string(rune('a'+i))
+			namespace := "erc20_" + strconv.Itoa(i)
 
 			erc20 := NewERC20(
-				mockClient,
+				mockClients(mockClient),
 				log,
 				15*time.Second,
 				namespace,
@@ -75,7 +76,7 @@ func TestERC20_getBalance(t *testing.T) {
 				[]*AddressERC20{tt.address},
 			)
 
-			err := erc20.getBalance(tt.address)
+			err := erc20.getBalance(context.Background(), mockClient, tt.address)
 
 			if (err != nil) != tt.wantError {
 				t.Errorf("getBalance() error = %v, wantError %v", err, tt.wantError)
@@ -123,7 +124,7 @@ func TestERC20_tick(t *testing.T) {
 	}
 
 	erc20 := NewERC20(
-		mockClient,
+		mockClients(mockClient),
 		log,
 		15*time.Second,
 		"test_erc20_tick",
@@ -134,7 +135,7 @@ func TestERC20_tick(t *testing.T) {
 	ctx := context.Background()
 	erc20.tick(ctx)
 
-	// Each address requires 2 calls (balanceOf + symbol)
+	// Each address requires 2 calls (balanceOf + symbol), 1 client * 2 addresses
 	expectedCalls := len(addresses) * 2
 	if len(mockClient.callLog) != expectedCalls {
 		t.Errorf("Expected %d RPC calls, got %d", expectedCalls, len(mockClient.callLog))
@@ -157,7 +158,7 @@ func TestERC20_getLabelValues(t *testing.T) {
 	}
 
 	erc20 := NewERC20(
-		&mockExecutionClient{},
+		mockClients(&mockExecutionClient{}),
 		log,
 		15*time.Second,
 		"test_erc20_labels",
@@ -165,7 +166,7 @@ func TestERC20_getLabelValues(t *testing.T) {
 		addresses,
 	)
 
-	labels := erc20.getLabelValues(addresses[0], "USDC")
+	labels := erc20.getLabelValues(addresses[0], "USDC", "mock-node")
 
 	if len(labels) != len(erc20.labelsMap) {
 		t.Errorf("Expected %d label values, got %d", len(erc20.labelsMap), len(labels))
