@@ -18,6 +18,11 @@ const (
 	LabelTokenID      string = "token_id"
 )
 
+const (
+	metricNameBalance     = "balance"
+	metricNameErrorsTotal = "errors_total"
+)
+
 func hexStringToFloat64(hexStr string) float64 {
 	f := new(big.Float)
 	f.SetString(hexStr)

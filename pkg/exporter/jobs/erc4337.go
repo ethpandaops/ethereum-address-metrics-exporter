@@ -72,7 +72,7 @@ func NewERC4337(clients []api.ExecutionClient, log logrus.FieldLogger, checkInte
 		ERC4337Balance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "balance",
+				Name:        metricNameBalance,
 				Help:        "The deposit balance of a ethereum ERC4337 account in the EntryPoint contract.",
 				ConstLabels: constLabels,
 			},
@@ -81,7 +81,7 @@ func NewERC4337(clients []api.ExecutionClient, log logrus.FieldLogger, checkInte
 		ERC4337Error: *prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
-				Name:        "errors_total",
+				Name:        metricNameErrorsTotal,
 				Help:        "The total errors when getting the deposit balance of a ethereum ERC4337 account.",
 				ConstLabels: constLabels,
 			},
@@ -114,8 +114,8 @@ func (n *ERC4337) tick(ctx context.Context) {
 			err := n.getBalance(ctx, client, address)
 			if err != nil {
 				n.log.WithError(err).WithFields(logrus.Fields{
-					"address":   address,
-					"execution": client.Name(),
+					LabelAddress:   address,
+					LabelExecution: client.Name(),
 				}).Error("Failed to get erc4337 contract balanceOf address")
 			}
 		}

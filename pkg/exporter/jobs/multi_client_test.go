@@ -34,8 +34,8 @@ func TestAccount_MultiClient_QueriesAllNodes(t *testing.T) {
 
 	addresses := []*AddressAccount{
 		{
-			Name:    "Test Account",
-			Address: "0x1111111111111111111111111111111111111111",
+			Name:    testNameTestAccount,
+			Address: testHolder1Address,
 			Labels:  map[string]string{},
 		},
 	}
@@ -57,8 +57,8 @@ func TestAccount_MultiClient_QueriesAllNodes(t *testing.T) {
 	assert.Equal(t, 1, client2.ethGetBalanceCalls, "client2 should be called once")
 
 	// Verify metrics have the execution label for each client
-	gethVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues("Test Account", "0x1111111111111111111111111111111111111111", "geth-1"))
-	nethermindVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues("Test Account", "0x1111111111111111111111111111111111111111", "nethermind-1"))
+	gethVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues(testNameTestAccount, testHolder1Address, "geth-1"))
+	nethermindVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues(testNameTestAccount, testHolder1Address, "nethermind-1"))
 
 	assert.Greater(t, gethVal, 0.0, "geth-1 metric should be set")
 	assert.Greater(t, nethermindVal, 0.0, "nethermind-1 metric should be set")
@@ -90,8 +90,8 @@ func TestAccount_MultiClient_OneNodeFails(t *testing.T) {
 
 	addresses := []*AddressAccount{
 		{
-			Name:    "Test Account",
-			Address: "0x1111111111111111111111111111111111111111",
+			Name:    testNameTestAccount,
+			Address: testHolder1Address,
 			Labels:  map[string]string{},
 		},
 	}
@@ -114,14 +114,14 @@ func TestAccount_MultiClient_OneNodeFails(t *testing.T) {
 	assert.Equal(t, 1, client3.ethGetBalanceCalls, "client3 should still be called after client2 fails")
 
 	// Working nodes should have metrics
-	gethVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues("Test Account", "0x1111111111111111111111111111111111111111", "geth-1"))
+	gethVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues(testNameTestAccount, testHolder1Address, "geth-1"))
 	assert.Greater(t, gethVal, 0.0)
 
-	nethermindVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues("Test Account", "0x1111111111111111111111111111111111111111", "nethermind-1"))
+	nethermindVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues(testNameTestAccount, testHolder1Address, "nethermind-1"))
 	assert.Greater(t, nethermindVal, 0.0)
 
 	// Broken node should have error counter incremented
-	errVal := testutil.ToFloat64(account.AccountError.WithLabelValues("Test Account", "0x1111111111111111111111111111111111111111", "broken-node"))
+	errVal := testutil.ToFloat64(account.AccountError.WithLabelValues(testNameTestAccount, testHolder1Address, "broken-node"))
 	assert.InDelta(t, 1.0, errVal, 0.01, "error counter should be incremented for broken node")
 }
 
@@ -146,7 +146,7 @@ func TestAccount_MultiClient_DifferentBalances(t *testing.T) {
 	addresses := []*AddressAccount{
 		{
 			Name:    "Divergent",
-			Address: "0x1111111111111111111111111111111111111111",
+			Address: testHolder1Address,
 			Labels:  map[string]string{},
 		},
 	}
@@ -163,8 +163,8 @@ func TestAccount_MultiClient_DifferentBalances(t *testing.T) {
 	ctx := context.Background()
 	account.tick(ctx)
 
-	nodeAVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues("Divergent", "0x1111111111111111111111111111111111111111", "node-a"))
-	nodeBVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues("Divergent", "0x1111111111111111111111111111111111111111", "node-b"))
+	nodeAVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues("Divergent", testHolder1Address, "node-a"))
+	nodeBVal := testutil.ToFloat64(account.AccountBalance.WithLabelValues("Divergent", testHolder1Address, "node-b"))
 
 	// Different nodes report different balances — this is the whole point of multi-node
 	assert.NotEqual(t, nodeAVal, nodeBVal, "nodes should report different balances for consensus detection")
@@ -176,7 +176,7 @@ func TestERC20_MultiClient_QueriesAllNodes(t *testing.T) {
 	t.Parallel()
 
 	client1 := &mockExecutionClient{
-		name:              "node-1",
+		name:              testNodeName1,
 		balanceOfResponse: "0x0000000000000000000000000000000000000000000000000000000005f5e100",
 	}
 
@@ -192,9 +192,9 @@ func TestERC20_MultiClient_QueriesAllNodes(t *testing.T) {
 
 	addresses := []*AddressERC20{
 		{
-			Name:     "USDC",
-			Address:  "0x1111111111111111111111111111111111111111",
-			Contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+			Name:     testNameUSDC,
+			Address:  testHolder1Address,
+			Contract: testUSDCContract,
 			Labels:   map[string]string{},
 		},
 	}
@@ -220,7 +220,7 @@ func TestAccount_Start_ContextCancellation(t *testing.T) {
 	t.Parallel()
 
 	mockClient := &mockExecutionClient{
-		name:                  "node-1",
+		name:                  testNodeName1,
 		ethGetBalanceResponse: "0x0",
 	}
 
@@ -234,7 +234,7 @@ func TestAccount_Start_ContextCancellation(t *testing.T) {
 		"start_cancel",
 		map[string]string{},
 		[]*AddressAccount{
-			{Name: "test", Address: "0x1111111111111111111111111111111111111111", Labels: map[string]string{}},
+			{Name: "test", Address: testHolder1Address, Labels: map[string]string{}},
 		},
 	)
 
@@ -279,7 +279,7 @@ func TestAccount_ExecutionLabelInMetrics(t *testing.T) {
 		"exec_label_test",
 		map[string]string{},
 		[]*AddressAccount{
-			{Name: "addr1", Address: "0x1111111111111111111111111111111111111111", Labels: map[string]string{}},
+			{Name: "addr1", Address: testHolder1Address, Labels: map[string]string{}},
 		},
 	)
 
@@ -287,7 +287,7 @@ func TestAccount_ExecutionLabelInMetrics(t *testing.T) {
 	account.tick(ctx)
 
 	// Verify the execution label is set to the client name
-	val := testutil.ToFloat64(account.AccountBalance.WithLabelValues("addr1", "0x1111111111111111111111111111111111111111", "my-custom-node"))
+	val := testutil.ToFloat64(account.AccountBalance.WithLabelValues("addr1", testHolder1Address, "my-custom-node"))
 	assert.InDelta(t, 1e18, val, 1.0)
 
 	// Verify the metric count - should be exactly 1 series

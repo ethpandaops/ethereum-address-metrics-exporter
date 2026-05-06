@@ -31,28 +31,28 @@ func TestConfig_Validate_ExecutionNodes(t *testing.T) {
 		{
 			name: "missing name",
 			execution: []*ExecutionNode{
-				{Name: "", URL: "http://localhost:8545"},
+				{Name: "", URL: testNodeURL},
 			},
 			wantErr: "execution node at index 0 must have a name",
 		},
 		{
 			name: "duplicate names",
 			execution: []*ExecutionNode{
-				{Name: "node-1", URL: "http://localhost:8545"},
-				{Name: "node-1", URL: "http://localhost:8546"},
+				{Name: testNodeName1, URL: testNodeURL},
+				{Name: testNodeName1, URL: "http://localhost:8546"},
 			},
 			wantErr: "duplicate execution node with the same name: node-1",
 		},
 		{
 			name: "valid single node",
 			execution: []*ExecutionNode{
-				{Name: "geth-1", URL: "http://localhost:8545", Timeout: 10 * time.Second},
+				{Name: "geth-1", URL: testNodeURL, Timeout: 10 * time.Second},
 			},
 		},
 		{
 			name: "valid multiple nodes",
 			execution: []*ExecutionNode{
-				{Name: "geth-1", URL: "http://localhost:8545"},
+				{Name: "geth-1", URL: testNodeURL},
 				{Name: "nethermind-1", URL: "http://localhost:8546"},
 			},
 		},
@@ -82,7 +82,7 @@ func TestConfig_Validate_DuplicateAddressNames(t *testing.T) {
 	t.Parallel()
 
 	validExecution := []*ExecutionNode{
-		{Name: "node-1", URL: "http://localhost:8545"},
+		{Name: testNodeName1, URL: testNodeURL},
 	}
 
 	tests := []struct {
@@ -98,8 +98,8 @@ func TestConfig_Validate_DuplicateAddressNames(t *testing.T) {
 			name: "duplicate account names",
 			addresses: Addresses{
 				Account: []*jobs.AddressAccount{
-					{Name: "dup", Address: "0x1111111111111111111111111111111111111111"},
-					{Name: "dup", Address: "0x2222222222222222222222222222222222222222"},
+					{Name: "dup", Address: testHolder1Address},
+					{Name: "dup", Address: testHolder2Address},
 				},
 			},
 			wantErr: "duplicate account address with the same name: dup",
@@ -108,8 +108,8 @@ func TestConfig_Validate_DuplicateAddressNames(t *testing.T) {
 			name: "duplicate erc20 names",
 			addresses: Addresses{
 				ERC20: []*jobs.AddressERC20{
-					{Name: "token", Address: "0x1111111111111111111111111111111111111111", Contract: "0xaaaa"},
-					{Name: "token", Address: "0x2222222222222222222222222222222222222222", Contract: "0xbbbb"},
+					{Name: "token", Address: testHolder1Address, Contract: "0xaaaa"},
+					{Name: "token", Address: testHolder2Address, Contract: "0xbbbb"},
 				},
 			},
 			wantErr: "duplicate erc20 address with the same name: token",
@@ -118,20 +118,30 @@ func TestConfig_Validate_DuplicateAddressNames(t *testing.T) {
 			name: "duplicate erc4337 names",
 			addresses: Addresses{
 				ERC4337: []*jobs.AddressERC4337{
-					{Name: "paymaster", Address: "0x1111111111111111111111111111111111111111", Contract: "0xaaaa"},
-					{Name: "paymaster", Address: "0x2222222222222222222222222222222222222222", Contract: "0xbbbb"},
+					{Name: "paymaster", Address: testHolder1Address, Contract: "0xaaaa"},
+					{Name: "paymaster", Address: testHolder2Address, Contract: "0xbbbb"},
 				},
 			},
 			wantErr: "duplicate erc4337 address with the same name: paymaster",
 		},
 		{
+			name: "duplicate lido withdrawal queue erc721 names",
+			addresses: Addresses{
+				LidoWithdrawalQueueERC721: []*jobs.AddressLidoWithdrawalQueueERC721{
+					{Name: "queue", Address: testHolder1Address, Contract: "0xaaaa"},
+					{Name: "queue", Address: testHolder2Address, Contract: "0xbbbb"},
+				},
+			},
+			wantErr: "duplicate lido withdrawal queue erc721 address with the same name: queue",
+		},
+		{
 			name: "same name across different types is OK",
 			addresses: Addresses{
 				Account: []*jobs.AddressAccount{
-					{Name: "shared-name", Address: "0x1111111111111111111111111111111111111111"},
+					{Name: "shared-name", Address: testHolder1Address},
 				},
 				ERC20: []*jobs.AddressERC20{
-					{Name: "shared-name", Address: "0x2222222222222222222222222222222222222222", Contract: "0xaaaa"},
+					{Name: "shared-name", Address: testHolder2Address, Contract: "0xaaaa"},
 				},
 			},
 		},
@@ -139,8 +149,8 @@ func TestConfig_Validate_DuplicateAddressNames(t *testing.T) {
 			name: "unique names within each type passes",
 			addresses: Addresses{
 				Account: []*jobs.AddressAccount{
-					{Name: "account-1", Address: "0x1111111111111111111111111111111111111111"},
-					{Name: "account-2", Address: "0x2222222222222222222222222222222222222222"},
+					{Name: "account-1", Address: testHolder1Address},
+					{Name: "account-2", Address: testHolder2Address},
 				},
 				ERC20: []*jobs.AddressERC20{
 					{Name: "token-1", Address: "0x3333333333333333333333333333333333333333", Contract: "0xaaaa"},

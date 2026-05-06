@@ -20,10 +20,10 @@ func TestUniswapPair_getBalance(t *testing.T) {
 			name: "successful reserves retrieval",
 			address: &AddressUniswapPair{
 				Name:     "ETH/USDT",
-				From:     "eth",
-				To:       "usdt",
+				From:     testLabelKeyEth,
+				To:       testLabelKeyUsdt,
 				Contract: "0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852",
-				Labels:   map[string]string{"type": "uniswap"},
+				Labels:   map[string]string{testLabelKeyType: "uniswap"},
 			},
 			getReservesResponse: "0x0000000000000000000000000000000000000000000000000de0b6b3a76400000000000000000000000000000000000000000000000000000de0b6b3a7640000", // Equal reserves
 			wantError:           false,
@@ -33,7 +33,7 @@ func TestUniswapPair_getBalance(t *testing.T) {
 			address: &AddressUniswapPair{
 				Name:     "DAI/USDC",
 				From:     "dai",
-				To:       "usdc",
+				To:       testLabelKeyUsdc,
 				Contract: "0xAE461cA67B15dc8dc81CE7615e0320dA1A9aB8D5",
 				Labels:   map[string]string{},
 			},
@@ -92,16 +92,16 @@ func TestUniswapPair_tick(t *testing.T) {
 	addresses := []*AddressUniswapPair{
 		{
 			Name:     "Pair 1",
-			From:     "eth",
-			To:       "usdt",
-			Contract: "0x1111111111111111111111111111111111111111",
+			From:     testLabelKeyEth,
+			To:       testLabelKeyUsdt,
+			Contract: testHolder1Address,
 			Labels:   map[string]string{},
 		},
 		{
 			Name:     "Pair 2",
 			From:     "dai",
-			To:       "usdc",
-			Contract: "0x2222222222222222222222222222222222222222",
+			To:       testLabelKeyUsdc,
+			Contract: testHolder2Address,
 			Labels:   map[string]string{},
 		},
 	}
@@ -132,11 +132,11 @@ func TestUniswapPair_getLabelValues(t *testing.T) {
 	addresses := []*AddressUniswapPair{
 		{
 			Name:     "ETH/USDT",
-			From:     "eth",
-			To:       "usdt",
+			From:     testLabelKeyEth,
+			To:       testLabelKeyUsdt,
 			Contract: "0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852",
 			Labels: map[string]string{
-				"type": "uniswap",
+				testLabelKeyType: "uniswap",
 			},
 		},
 	}

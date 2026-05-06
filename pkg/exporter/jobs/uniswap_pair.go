@@ -74,7 +74,7 @@ func NewUniswapPair(clients []api.ExecutionClient, log logrus.FieldLogger, check
 		UniswapPairBalance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "balance",
+				Name:        metricNameBalance,
 				Help:        "The balance of a ethereum uniswap pair contract.",
 				ConstLabels: constLabels,
 			},
@@ -83,7 +83,7 @@ func NewUniswapPair(clients []api.ExecutionClient, log logrus.FieldLogger, check
 		UniswapPairError: *prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
-				Name:        "errors_total",
+				Name:        metricNameErrorsTotal,
 				Help:        "The total errors when getting the balance of a ethereum uniswap pair contract.",
 				ConstLabels: constLabels,
 			},
@@ -116,8 +116,8 @@ func (n *UniswapPair) tick(ctx context.Context) {
 			err := n.getBalance(ctx, client, address)
 			if err != nil {
 				n.log.WithError(err).WithFields(logrus.Fields{
-					"address":   address,
-					"execution": client.Name(),
+					LabelAddress:   address,
+					LabelExecution: client.Name(),
 				}).Error("Failed to get uniswap pair balance")
 			}
 		}
@@ -173,8 +173,8 @@ func (n *UniswapPair) getBalance(ctx context.Context, client api.ExecutionClient
 
 	if len(balanceStr) < 130 {
 		n.log.WithFields(logrus.Fields{
-			"address": address,
-			"balance": balanceStr,
+			LabelAddress:      address,
+			metricNameBalance: balanceStr,
 		}).Warn("Got empty uniswap pair balance")
 
 		return nil

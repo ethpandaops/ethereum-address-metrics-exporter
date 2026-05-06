@@ -21,28 +21,28 @@ func TestERC20_getBalance(t *testing.T) {
 			name: "successful balance retrieval with symbol",
 			address: &AddressERC20{
 				Name:     "USDC Balance",
-				Address:  "0x1234567890123456789012345678901234567890",
-				Contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-				Labels:   map[string]string{"type": "stablecoin"},
+				Address:  testLidoHolderAddress,
+				Contract: testUSDCContract,
+				Labels:   map[string]string{testLabelKeyType: "stablecoin"},
 			},
 			balanceResponse: "0x0000000000000000000000000000000000000000000000000000000005f5e100", // 100 USDC (6 decimals)
-			symbolResponse:  "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000455534443000000000000000000000000000000000000000000000000000000",
+			symbolResponse:  testABISymbolUSDCResponse,
 			wantError:       false,
 		},
 		{
 			name: "zero balance",
 			address: &AddressERC20{
-				Name:     "Empty Wallet",
+				Name:     testNameEmptyWallet,
 				Address:  "0x0000000000000000000000000000000000000001",
-				Contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				Contract: testUSDCContract,
 				Labels:   map[string]string{},
 			},
 			balanceResponse: "0x0000000000000000000000000000000000000000000000000000000000000000",
-			symbolResponse:  "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000455534443000000000000000000000000000000000000000000000000000000",
+			symbolResponse:  testABISymbolUSDCResponse,
 			wantError:       false,
 		},
 		{
-			name: "large balance",
+			name: testNameLargeBal,
 			address: &AddressERC20{
 				Name:     "Whale Wallet",
 				Address:  "0x0000000000000000000000000000000000000002",
@@ -111,14 +111,14 @@ func TestERC20_tick(t *testing.T) {
 	addresses := []*AddressERC20{
 		{
 			Name:     "Token 1",
-			Address:  "0x1111111111111111111111111111111111111111",
-			Contract: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+			Address:  testHolder1Address,
+			Contract: testContractAAddress,
 			Labels:   map[string]string{},
 		},
 		{
 			Name:     "Token 2",
-			Address:  "0x2222222222222222222222222222222222222222",
-			Contract: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+			Address:  testHolder2Address,
+			Contract: testContractBAddress,
 			Labels:   map[string]string{},
 		},
 	}
@@ -149,10 +149,10 @@ func TestERC20_getLabelValues(t *testing.T) {
 	addresses := []*AddressERC20{
 		{
 			Name:     "Test Token",
-			Address:  "0x1234567890123456789012345678901234567890",
-			Contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+			Address:  testLidoHolderAddress,
+			Contract: testUSDCContract,
 			Labels: map[string]string{
-				"type": "stablecoin",
+				testLabelKeyType: "stablecoin",
 			},
 		},
 	}
@@ -166,7 +166,7 @@ func TestERC20_getLabelValues(t *testing.T) {
 		addresses,
 	)
 
-	labels := erc20.getLabelValues(addresses[0], "USDC", "mock-node")
+	labels := erc20.getLabelValues(addresses[0], testNameUSDC, "mock-node")
 
 	if len(labels) != len(erc20.labelsMap) {
 		t.Errorf("Expected %d label values, got %d", len(erc20.labelsMap), len(labels))
@@ -175,7 +175,7 @@ func TestERC20_getLabelValues(t *testing.T) {
 	hasSymbol := false
 
 	for _, label := range labels {
-		if label == "USDC" {
+		if label == testNameUSDC {
 			hasSymbol = true
 		}
 	}

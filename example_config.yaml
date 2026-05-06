@@ -59,6 +59,14 @@ addresses:
       # optional metric labels to add to this address
       labels:
         type: usdc
+  # https://docs.lido.fi/contracts/withdrawal-queue-erc721/
+  lidoWithdrawalQueueERC721:
+    - name: Some Withdrawal Queue Holder
+      contract: 0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1
+      address: 0x4B1D1465b14cA06e72b942F361Fd3352Aa9c5368
+      # optional metric labels to add to this address
+      labels:
+        type: withdrawal-queue
   # https://eips.ethereum.org/EIPS/eip-4337
   erc4337:
     - name: Some Paymaster

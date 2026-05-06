@@ -84,7 +84,7 @@ func NewERC4626(clients []api.ExecutionClient, log logrus.FieldLogger, checkInte
 		ERC4626Error: *prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
-				Name:        "errors_total",
+				Name:        metricNameErrorsTotal,
 				Help:        "The total errors when calling ERC4626 vault functions.",
 				ConstLabels: constLabels,
 			},
@@ -117,8 +117,8 @@ func (n *ERC4626) tick(ctx context.Context) {
 			err := n.getAssets(ctx, client, address)
 			if err != nil {
 				n.log.WithError(err).WithFields(logrus.Fields{
-					"address":   address,
-					"execution": client.Name(),
+					LabelAddress:   address,
+					LabelExecution: client.Name(),
 				}).Error("Failed to get ERC4626 vault assets")
 			}
 		}

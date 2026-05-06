@@ -20,15 +20,15 @@ func TestAccount_getBalance(t *testing.T) {
 		{
 			name: "successful balance retrieval",
 			address: &AddressAccount{
-				Name:    "Test Account",
-				Address: "0x1234567890123456789012345678901234567890",
-				Labels:  map[string]string{"type": "friend"},
+				Name:    testNameTestAccount,
+				Address: testLidoHolderAddress,
+				Labels:  map[string]string{testLabelKeyType: "friend"},
 			},
 			balanceResponse: "0x0de0b6b3a7640000", // 1 ETH
 			wantError:       false,
 		},
 		{
-			name: "zero balance",
+			name: testNameZeroBal,
 			address: &AddressAccount{
 				Name:    "Empty Account",
 				Address: "0x0000000000000000000000000000000000000001",
@@ -38,7 +38,7 @@ func TestAccount_getBalance(t *testing.T) {
 			wantError:       false,
 		},
 		{
-			name: "large balance",
+			name: testNameLargeBal,
 			address: &AddressAccount{
 				Name:    "Whale Account",
 				Address: "0x0000000000000000000000000000000000000002",
@@ -93,13 +93,13 @@ func TestAccount_tick(t *testing.T) {
 
 	addresses := []*AddressAccount{
 		{
-			Name:    "Account 1",
-			Address: "0x1111111111111111111111111111111111111111",
+			Name:    testNameAccount1,
+			Address: testHolder1Address,
 			Labels:  map[string]string{},
 		},
 		{
-			Name:    "Account 2",
-			Address: "0x2222222222222222222222222222222222222222",
+			Name:    testNameAccount2,
+			Address: testHolder2Address,
 			Labels:  map[string]string{},
 		},
 	}
@@ -129,11 +129,11 @@ func TestAccount_getLabelValues(t *testing.T) {
 
 	addresses := []*AddressAccount{
 		{
-			Name:    "Test Account",
-			Address: "0x1234567890123456789012345678901234567890",
+			Name:    testNameTestAccount,
+			Address: testLidoHolderAddress,
 			Labels: map[string]string{
-				"type":  "friend",
-				"extra": "custom",
+				testLabelKeyType: "friend",
+				"extra":          "custom",
 			},
 		},
 	}
