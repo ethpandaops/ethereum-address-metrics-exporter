@@ -19,11 +19,11 @@ func TestChainlinkDataFeed_getBalance(t *testing.T) {
 		{
 			name: "successful price retrieval",
 			address: &AddressChainlinkDataFeed{
-				Name:     "ETH/USD",
-				From:     "eth",
-				To:       "usd",
+				Name:     testNameETHUSD,
+				From:     testLabelKeyEth,
+				To:       testLabelKeyUsd,
 				Contract: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
-				Labels:   map[string]string{"type": "chainlink"},
+				Labels:   map[string]string{testLabelKeyType: "chainlink"},
 			},
 			latestAnswerResponse: "0x00000000000000000000000000000000000000000000000000000000773594c0", // ~2000 USD
 			wantError:            false,
@@ -33,7 +33,7 @@ func TestChainlinkDataFeed_getBalance(t *testing.T) {
 			address: &AddressChainlinkDataFeed{
 				Name:     "TEST/USD",
 				From:     "test",
-				To:       "usd",
+				To:       testLabelKeyUsd,
 				Contract: "0x0000000000000000000000000000000000000001",
 				Labels:   map[string]string{},
 			},
@@ -45,7 +45,7 @@ func TestChainlinkDataFeed_getBalance(t *testing.T) {
 			address: &AddressChainlinkDataFeed{
 				Name:     "BTC/USD",
 				From:     "btc",
-				To:       "usd",
+				To:       testLabelKeyUsd,
 				Contract: "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c",
 				Labels:   map[string]string{},
 			},
@@ -103,17 +103,17 @@ func TestChainlinkDataFeed_tick(t *testing.T) {
 
 	addresses := []*AddressChainlinkDataFeed{
 		{
-			Name:     "ETH/USD",
-			From:     "eth",
-			To:       "usd",
-			Contract: "0x1111111111111111111111111111111111111111",
+			Name:     testNameETHUSD,
+			From:     testLabelKeyEth,
+			To:       testLabelKeyUsd,
+			Contract: testHolder1Address,
 			Labels:   map[string]string{},
 		},
 		{
 			Name:     "BTC/USD",
 			From:     "btc",
-			To:       "usd",
-			Contract: "0x2222222222222222222222222222222222222222",
+			To:       testLabelKeyUsd,
+			Contract: testHolder2Address,
 			Labels:   map[string]string{},
 		},
 	}
@@ -143,12 +143,12 @@ func TestChainlinkDataFeed_getLabelValues(t *testing.T) {
 
 	addresses := []*AddressChainlinkDataFeed{
 		{
-			Name:     "ETH/USD",
-			From:     "eth",
-			To:       "usd",
+			Name:     testNameETHUSD,
+			From:     testLabelKeyEth,
+			To:       testLabelKeyUsd,
 			Contract: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
 			Labels: map[string]string{
-				"type": "chainlink",
+				testLabelKeyType: "chainlink",
 			},
 		},
 	}

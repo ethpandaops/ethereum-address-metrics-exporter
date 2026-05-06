@@ -69,7 +69,7 @@ func NewAccount(clients []api.ExecutionClient, log logrus.FieldLogger, checkInte
 		AccountBalance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "balance",
+				Name:        metricNameBalance,
 				Help:        "The balance of a account address.",
 				ConstLabels: constLabels,
 			},
@@ -78,7 +78,7 @@ func NewAccount(clients []api.ExecutionClient, log logrus.FieldLogger, checkInte
 		AccountError: *prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
-				Name:        "errors_total",
+				Name:        metricNameErrorsTotal,
 				Help:        "The total errors when getting the balance of a account address.",
 				ConstLabels: constLabels,
 			},
@@ -112,8 +112,8 @@ func (n *Account) tick(ctx context.Context) {
 			err := n.getBalance(ctx, client, address)
 			if err != nil {
 				n.log.WithError(err).WithFields(logrus.Fields{
-					"address":   address,
-					"execution": client.Name(),
+					LabelAddress:   address,
+					LabelExecution: client.Name(),
 				}).Error("Failed to get Account balance")
 			}
 		}

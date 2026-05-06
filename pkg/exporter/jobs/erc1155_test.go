@@ -23,10 +23,10 @@ func TestERC1155_getBalance(t *testing.T) {
 			name: "successful ERC1155 balance retrieval",
 			address: &AddressERC1155{
 				Name:     "Gaming NFT",
-				Address:  "0x1234567890123456789012345678901234567890",
-				Contract: "0x76BE3b62873462d2142405439777e971754E8E77",
+				Address:  testLidoHolderAddress,
+				Contract: testERC1155Contract,
 				TokenID:  *tokenID,
-				Labels:   map[string]string{"type": "gaming"},
+				Labels:   map[string]string{testLabelKeyType: "gaming"},
 			},
 			balanceResponse: "0x000000000000000000000000000000000000000000000000000000000000000a", // 10 tokens
 			wantError:       false,
@@ -34,9 +34,9 @@ func TestERC1155_getBalance(t *testing.T) {
 		{
 			name: "zero balance",
 			address: &AddressERC1155{
-				Name:     "Empty Wallet",
+				Name:     testNameEmptyWallet,
 				Address:  "0x0000000000000000000000000000000000000001",
-				Contract: "0x76BE3b62873462d2142405439777e971754E8E77",
+				Contract: testERC1155Contract,
 				TokenID:  *tokenID,
 				Labels:   map[string]string{},
 			},
@@ -44,11 +44,11 @@ func TestERC1155_getBalance(t *testing.T) {
 			wantError:       false,
 		},
 		{
-			name: "large balance",
+			name: testNameLargeBal,
 			address: &AddressERC1155{
 				Name:     "Whale Wallet",
 				Address:  "0x0000000000000000000000000000000000000002",
-				Contract: "0x76BE3b62873462d2142405439777e971754E8E77",
+				Contract: testERC1155Contract,
 				TokenID:  *tokenID,
 				Labels:   map[string]string{},
 			},
@@ -109,15 +109,15 @@ func TestERC1155_tick(t *testing.T) {
 	addresses := []*AddressERC1155{
 		{
 			Name:     "Token 1",
-			Address:  "0x1111111111111111111111111111111111111111",
-			Contract: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+			Address:  testHolder1Address,
+			Contract: testContractAAddress,
 			TokenID:  *tokenID,
 			Labels:   map[string]string{},
 		},
 		{
 			Name:     "Token 2",
-			Address:  "0x2222222222222222222222222222222222222222",
-			Contract: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+			Address:  testHolder2Address,
+			Contract: testContractBAddress,
 			TokenID:  *tokenID,
 			Labels:   map[string]string{},
 		},
@@ -151,11 +151,11 @@ func TestERC1155_getLabelValues(t *testing.T) {
 	addresses := []*AddressERC1155{
 		{
 			Name:     "Test ERC1155",
-			Address:  "0x1234567890123456789012345678901234567890",
-			Contract: "0x76BE3b62873462d2142405439777e971754E8E77",
+			Address:  testLidoHolderAddress,
+			Contract: testERC1155Contract,
 			TokenID:  *tokenID,
 			Labels: map[string]string{
-				"type": "gaming",
+				testLabelKeyType: "gaming",
 			},
 		},
 	}

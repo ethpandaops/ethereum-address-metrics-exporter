@@ -62,9 +62,9 @@ func TestHexStringToString(t *testing.T) {
 	}{
 		{
 			name: "ABI-encoded USDC",
-			// offset=32, length=4, data="USDC"
-			input:    "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000455534443000000000000000000000000000000000000000000000000000000",
-			expected: "USDC",
+			// offset=32, length=4, data=testNameUSDC
+			input:    testABISymbolUSDCResponse,
+			expected: testNameUSDC,
 		},
 		{
 			name: "ABI-encoded ETH with length 4",
@@ -75,7 +75,7 @@ func TestHexStringToString(t *testing.T) {
 		{
 			name: "ABI-encoded sUSDC-Vau with length 9",
 			// offset=32, length=9
-			input:    "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000973555344432d5661756c74000000000000000000000000000000000000000000",
+			input:    testABISymbolSUSDCResponse,
 			expected: "sUSDC-Vau",
 		},
 		{

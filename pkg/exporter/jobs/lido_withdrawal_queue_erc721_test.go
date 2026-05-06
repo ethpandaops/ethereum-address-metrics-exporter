@@ -16,14 +16,6 @@ import (
 	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 )
 
-const (
-	testLidoHolderAddress = "0x1234567890123456789012345678901234567890"
-	testLidoQueueContract = "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1"
-	testMockNodeName      = "mock-node"
-	testNodeName1         = "node-1"
-	testLabelKeyType      = "type"
-)
-
 func TestLidoWithdrawalQueueERC721_getWithdrawalQueue(t *testing.T) {
 	address := &AddressLidoWithdrawalQueueERC721{
 		Name:     "Test Queue",
@@ -91,7 +83,7 @@ func TestLidoWithdrawalQueueERC721_getWithdrawalQueue_EmptyRequests(t *testing.T
 	}
 
 	mockClient := &mockExecutionClient{
-		underlyingTokenResponse:    encodeABIAddressReturn("0x1111111111111111111111111111111111111111"),
+		underlyingTokenResponse:    encodeABIAddressReturn(testHolder1Address),
 		symbolResponse:             encodeABIStringReturn("defETH"),
 		decimalsResponse:           encodeABIUintReturn(18),
 		withdrawalRequestsResponse: encodeABIUintArrayReturn(),

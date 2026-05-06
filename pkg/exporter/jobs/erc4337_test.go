@@ -19,20 +19,20 @@ func TestERC4337_getBalance(t *testing.T) {
 		{
 			name: "successful balance retrieval",
 			address: &AddressERC4337{
-				Name:     "Account 1",
-				Address:  "0x1234567890123456789012345678901234567890",
-				Contract: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789", // EntryPoint
+				Name:     testNameAccount1,
+				Address:  testLidoHolderAddress,
+				Contract: testEntryPointAddress, // EntryPoint
 				Labels:   map[string]string{},
 			},
 			balanceResponse: "0x0000000000000000000000000000000000000000000000000000000005f5e100", // 100
 			wantError:       false,
 		},
 		{
-			name: "zero balance",
+			name: testNameZeroBal,
 			address: &AddressERC4337{
-				Name:     "Account 2",
+				Name:     testNameAccount2,
 				Address:  "0x0000000000000000000000000000000000000001",
-				Contract: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+				Contract: testEntryPointAddress,
 				Labels:   map[string]string{},
 			},
 			balanceResponse: "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -89,15 +89,15 @@ func TestERC4337_tick(t *testing.T) {
 
 	addresses := []*AddressERC4337{
 		{
-			Name:     "Account 1",
-			Address:  "0x1111111111111111111111111111111111111111",
-			Contract: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+			Name:     testNameAccount1,
+			Address:  testHolder1Address,
+			Contract: testContractAAddress,
 			Labels:   map[string]string{},
 		},
 		{
-			Name:     "Account 2",
-			Address:  "0x2222222222222222222222222222222222222222",
-			Contract: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+			Name:     testNameAccount2,
+			Address:  testHolder2Address,
+			Contract: testContractBAddress,
 			Labels:   map[string]string{},
 		},
 	}
@@ -127,11 +127,11 @@ func TestERC4337_getLabelValues(t *testing.T) {
 
 	addresses := []*AddressERC4337{
 		{
-			Name:     "Test Account",
-			Address:  "0x1234567890123456789012345678901234567890",
-			Contract: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+			Name:     testNameTestAccount,
+			Address:  testLidoHolderAddress,
+			Contract: testEntryPointAddress,
 			Labels: map[string]string{
-				"type": "paymaster",
+				testLabelKeyType: "paymaster",
 			},
 		},
 	}

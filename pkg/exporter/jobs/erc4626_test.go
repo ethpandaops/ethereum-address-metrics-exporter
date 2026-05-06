@@ -24,20 +24,20 @@ func TestERC4626_getAssets(t *testing.T) {
 			name: "successful conversion with shares balance",
 			address: &AddressERC4626{
 				Name:     "Test Vault",
-				Address:  "0x1234567890123456789012345678901234567890",
-				Contract: "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
-				Labels:   map[string]string{"type": "usdc"},
+				Address:  testLidoHolderAddress,
+				Contract: testERC4626Vault,
+				Labels:   map[string]string{testLabelKeyType: "usdc"},
 			},
 			balanceOfResponse:       "0x0000000000000000000000000000000000000000000000000de0b6b3a7640000", // 1e18
 			convertToAssetsResponse: "0x00000000000000000000000000000000000000000000000000038d7ea4c68000", // 1e15
 			wantError:               false,
 		},
 		{
-			name: "zero balance",
+			name: testNameZeroBal,
 			address: &AddressERC4626{
 				Name:     "Test Vault Zero",
 				Address:  "0x0000000000000000000000000000000000000001",
-				Contract: "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
+				Contract: testERC4626Vault,
 				Labels:   map[string]string{},
 			},
 			balanceOfResponse:       "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -45,11 +45,11 @@ func TestERC4626_getAssets(t *testing.T) {
 			wantError:               false,
 		},
 		{
-			name: "large balance",
+			name: testNameLargeBal,
 			address: &AddressERC4626{
 				Name:     "Test Vault Large",
 				Address:  "0x0000000000000000000000000000000000000002",
-				Contract: "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
+				Contract: testERC4626Vault,
 				Labels:   map[string]string{},
 			},
 			balanceOfResponse:       "0x0000000000000000000000000000000000000000000000056bc75e2d63100000",   // 1e20
@@ -63,7 +63,7 @@ func TestERC4626_getAssets(t *testing.T) {
 			mockClient := &mockExecutionClient{
 				balanceOfResponse:       tt.balanceOfResponse,
 				convertToAssetsResponse: tt.convertToAssetsResponse,
-				symbolResponse:          "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000973555344432d5661756c74000000000000000000000000000000000000000000", // "sUSDC-Vault"
+				symbolResponse:          testABISymbolSUSDCResponse, // "sUSDC-Vault"
 				balanceOfError:          tt.balanceOfError,
 				convertToAssetsError:    tt.convertToAssetsError,
 				callLog:                 []mockCall{},
@@ -138,7 +138,7 @@ func TestERC4626_tick(t *testing.T) {
 	mockClient := &mockExecutionClient{
 		balanceOfResponse:       "0x0000000000000000000000000000000000000000000000000de0b6b3a7640000",
 		convertToAssetsResponse: "0x00000000000000000000000000000000000000000000000000038d7ea4c68000",
-		symbolResponse:          "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000973555344432d5661756c74000000000000000000000000000000000000000000", // "sUSDC-Vault"
+		symbolResponse:          testABISymbolSUSDCResponse, // "sUSDC-Vault"
 		callLog:                 []mockCall{},
 	}
 
@@ -148,14 +148,14 @@ func TestERC4626_tick(t *testing.T) {
 	addresses := []*AddressERC4626{
 		{
 			Name:     "Vault 1",
-			Address:  "0x1111111111111111111111111111111111111111",
-			Contract: "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
+			Address:  testHolder1Address,
+			Contract: testERC4626Vault,
 			Labels:   map[string]string{},
 		},
 		{
 			Name:     "Vault 2",
-			Address:  "0x2222222222222222222222222222222222222222",
-			Contract: "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
+			Address:  testHolder2Address,
+			Contract: testERC4626Vault,
 			Labels:   map[string]string{},
 		},
 	}
@@ -186,18 +186,18 @@ func TestERC4626_getLabelValues(t *testing.T) {
 	addresses := []*AddressERC4626{
 		{
 			Name:     "Test Vault",
-			Address:  "0x1234567890123456789012345678901234567890",
-			Contract: "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
+			Address:  testLidoHolderAddress,
+			Contract: testERC4626Vault,
 			Labels: map[string]string{
-				"type":  "usdc",
-				"extra": "custom",
+				testLabelKeyType: "usdc",
+				"extra":          "custom",
 			},
 		},
 	}
 
 	erc4626 := NewERC4626(
 		mockClients(&mockExecutionClient{
-			symbolResponse: "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000973555344432d5661756c74000000000000000000000000000000000000000000", // "sUSDC-Vault"
+			symbolResponse: testABISymbolSUSDCResponse, // "sUSDC-Vault"
 		}),
 		log,
 		15*time.Second,

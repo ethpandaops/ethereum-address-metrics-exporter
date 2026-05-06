@@ -20,9 +20,9 @@ func TestERC721_getBalance(t *testing.T) {
 			name: "successful NFT balance retrieval",
 			address: &AddressERC721{
 				Name:     "NFT Collection",
-				Address:  "0x1234567890123456789012345678901234567890",
-				Contract: "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D",
-				Labels:   map[string]string{"type": "bayc"},
+				Address:  testLidoHolderAddress,
+				Contract: testBoredApeContract,
+				Labels:   map[string]string{testLabelKeyType: "bayc"},
 			},
 			balanceResponse: "0x0000000000000000000000000000000000000000000000000000000000000005", // 5 NFTs
 			wantError:       false,
@@ -30,9 +30,9 @@ func TestERC721_getBalance(t *testing.T) {
 		{
 			name: "zero NFT balance",
 			address: &AddressERC721{
-				Name:     "Empty Wallet",
+				Name:     testNameEmptyWallet,
 				Address:  "0x0000000000000000000000000000000000000001",
-				Contract: "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D",
+				Contract: testBoredApeContract,
 				Labels:   map[string]string{},
 			},
 			balanceResponse: "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -101,14 +101,14 @@ func TestERC721_tick(t *testing.T) {
 	addresses := []*AddressERC721{
 		{
 			Name:     "NFT 1",
-			Address:  "0x1111111111111111111111111111111111111111",
-			Contract: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+			Address:  testHolder1Address,
+			Contract: testContractAAddress,
 			Labels:   map[string]string{},
 		},
 		{
 			Name:     "NFT 2",
-			Address:  "0x2222222222222222222222222222222222222222",
-			Contract: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+			Address:  testHolder2Address,
+			Contract: testContractBAddress,
 			Labels:   map[string]string{},
 		},
 	}
@@ -139,10 +139,10 @@ func TestERC721_getLabelValues(t *testing.T) {
 	addresses := []*AddressERC721{
 		{
 			Name:     "Test NFT",
-			Address:  "0x1234567890123456789012345678901234567890",
-			Contract: "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D",
+			Address:  testLidoHolderAddress,
+			Contract: testBoredApeContract,
 			Labels: map[string]string{
-				"type": "bayc",
+				testLabelKeyType: "bayc",
 			},
 		},
 	}

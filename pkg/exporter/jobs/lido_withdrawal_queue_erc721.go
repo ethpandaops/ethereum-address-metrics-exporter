@@ -18,8 +18,6 @@ import (
 const (
 	NameLidoWithdrawalQueueERC721 = "lido_withdrawal_queue_erc721"
 
-	metricNameErrorsTotal = "errors_total"
-
 	lidoWithdrawalQueueUnderlyingTokenSelector        = "0xe00bfe50" //nolint:gosec // Ethereum ABI selector, not a credential.
 	lidoWithdrawalQueueSymbolSelector                 = "0x95d89b41"
 	lidoWithdrawalQueueDecimalsSelector               = "0x313ce567"

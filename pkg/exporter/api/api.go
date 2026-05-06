@@ -102,10 +102,10 @@ func (e *executionClient) post(ctx context.Context, method string, params any, i
 	}()
 
 	body := map[string]any{
-		"jsonrpc": "2.0",
-		"method":  method,
-		"id":      id,
-		"params":  params,
+		"jsonrpc":   "2.0",
+		labelMethod: method,
+		"id":        id,
+		"params":    params,
 	}
 
 	jsonData, err := json.Marshal(body)

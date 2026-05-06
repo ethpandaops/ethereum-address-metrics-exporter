@@ -76,7 +76,7 @@ func NewERC1155(clients []api.ExecutionClient, log logrus.FieldLogger, checkInte
 		ERC1155Balance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "balance",
+				Name:        metricNameBalance,
 				Help:        "The balance of a ethereum ERC115 contract by address and token id.",
 				ConstLabels: constLabels,
 			},
@@ -85,7 +85,7 @@ func NewERC1155(clients []api.ExecutionClient, log logrus.FieldLogger, checkInte
 		ERC1155Error: *prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
-				Name:        "errors_total",
+				Name:        metricNameErrorsTotal,
 				Help:        "The total errors when getting the balance of a ethereum ERC115 contract by address and token id.",
 				ConstLabels: constLabels,
 			},
@@ -118,8 +118,8 @@ func (n *ERC1155) tick(ctx context.Context) {
 			err := n.getBalance(ctx, client, address)
 			if err != nil {
 				n.log.WithError(err).WithFields(logrus.Fields{
-					"address":   address,
-					"execution": client.Name(),
+					LabelAddress:   address,
+					LabelExecution: client.Name(),
 				}).Error("Failed to get erc1155 contract balanceOf address")
 			}
 		}

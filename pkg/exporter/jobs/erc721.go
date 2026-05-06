@@ -72,7 +72,7 @@ func NewERC721(clients []api.ExecutionClient, log logrus.FieldLogger, checkInter
 		ERC721Balance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "balance",
+				Name:        metricNameBalance,
 				Help:        "The balance of a ethereum ERC721 contract by address.",
 				ConstLabels: constLabels,
 			},
@@ -81,7 +81,7 @@ func NewERC721(clients []api.ExecutionClient, log logrus.FieldLogger, checkInter
 		ERC721Error: *prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
-				Name:        "errors_total",
+				Name:        metricNameErrorsTotal,
 				Help:        "The total errors when getting the balance of a ethereum ERC721 contract by address.",
 				ConstLabels: constLabels,
 			},
@@ -114,8 +114,8 @@ func (n *ERC721) tick(ctx context.Context) {
 			err := n.getBalance(ctx, client, address)
 			if err != nil {
 				n.log.WithError(err).WithFields(logrus.Fields{
-					"address":   address,
-					"execution": client.Name(),
+					LabelAddress:   address,
+					LabelExecution: client.Name(),
 				}).Error("Failed to get erc721 contract balanceOf address")
 			}
 		}
