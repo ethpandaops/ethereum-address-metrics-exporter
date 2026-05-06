@@ -18,6 +18,8 @@ import (
 const (
 	NameLidoWithdrawalQueueERC721 = "lido_withdrawal_queue_erc721"
 
+	metricNameErrorsTotal = "errors_total"
+
 	lidoWithdrawalQueueUnderlyingTokenSelector        = "0xe00bfe50" //nolint:gosec // Ethereum ABI selector, not a credential.
 	lidoWithdrawalQueueSymbolSelector                 = "0x95d89b41"
 	lidoWithdrawalQueueDecimalsSelector               = "0x313ce567"
@@ -129,7 +131,7 @@ func NewLidoWithdrawalQueueERC721(clients []api.ExecutionClient, log logrus.Fiel
 		LidoWithdrawalQueueERC721Error: *prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
-				Name:        "errors_total",
+				Name:        metricNameErrorsTotal,
 				Help:        "The total errors when calling Lido-compatible withdrawal queue ERC721 functions.",
 				ConstLabels: constLabels,
 			},
@@ -165,8 +167,8 @@ func (n *LidoWithdrawalQueueERC721) tick(ctx context.Context) {
 			err := n.getWithdrawalQueue(ctx, client, address)
 			if err != nil {
 				n.log.WithError(err).WithFields(logrus.Fields{
-					"address":   address,
-					"execution": client.Name(),
+					LabelAddress:   address,
+					LabelExecution: client.Name(),
 				}).Error("Failed to get Lido withdrawal queue ERC721 metrics")
 			}
 		}

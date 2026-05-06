@@ -16,11 +16,19 @@ import (
 	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 )
 
+const (
+	testLidoHolderAddress = "0x1234567890123456789012345678901234567890"
+	testLidoQueueContract = "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1"
+	testMockNodeName      = "mock-node"
+	testNodeName1         = "node-1"
+	testLabelKeyType      = "type"
+)
+
 func TestLidoWithdrawalQueueERC721_getWithdrawalQueue(t *testing.T) {
 	address := &AddressLidoWithdrawalQueueERC721{
 		Name:     "Test Queue",
-		Address:  "0x1234567890123456789012345678901234567890",
-		Contract: "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1",
+		Address:  testLidoHolderAddress,
+		Contract: testLidoQueueContract,
 		Labels:   map[string]string{},
 	}
 
@@ -52,8 +60,8 @@ func TestLidoWithdrawalQueueERC721_getWithdrawalQueue(t *testing.T) {
 
 	labels := []string{
 		"Test Queue",
-		"0x1234567890123456789012345678901234567890",
-		"0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1",
+		testLidoHolderAddress,
+		testLidoQueueContract,
 		"abcETH",
 		"mock-node",
 	}
@@ -77,8 +85,8 @@ func TestLidoWithdrawalQueueERC721_getWithdrawalQueue(t *testing.T) {
 func TestLidoWithdrawalQueueERC721_getWithdrawalQueue_EmptyRequests(t *testing.T) {
 	address := &AddressLidoWithdrawalQueueERC721{
 		Name:     "Empty Queue",
-		Address:  "0x1234567890123456789012345678901234567890",
-		Contract: "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1",
+		Address:  testLidoHolderAddress,
+		Contract: testLidoQueueContract,
 		Labels:   map[string]string{},
 	}
 
@@ -105,8 +113,8 @@ func TestLidoWithdrawalQueueERC721_getWithdrawalQueue_EmptyRequests(t *testing.T
 
 	labels := []string{
 		"Empty Queue",
-		"0x1234567890123456789012345678901234567890",
-		"0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1",
+		testLidoHolderAddress,
+		testLidoQueueContract,
 		"defETH",
 		"mock-node",
 	}
@@ -126,13 +134,13 @@ func TestLidoWithdrawalQueueERC721_getWithdrawalQueue_EmptyRequests(t *testing.T
 func TestLidoWithdrawalQueueERC721_tick_MultiClient(t *testing.T) {
 	address := &AddressLidoWithdrawalQueueERC721{
 		Name:     "Multi Queue",
-		Address:  "0x1234567890123456789012345678901234567890",
-		Contract: "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1",
+		Address:  testLidoHolderAddress,
+		Contract: testLidoQueueContract,
 		Labels:   map[string]string{},
 	}
 
 	client1 := &mockExecutionClient{
-		name:                       "node-1",
+		name:                       testNodeName1,
 		underlyingTokenResponse:    encodeABIAddressReturn("0xabCDEFabcdefABCDefABcdefabcdeFabcdefABCD"),
 		symbolResponse:             encodeABIStringReturn("abcETH"),
 		decimalsResponse:           encodeABIUintReturn(18),
@@ -173,10 +181,10 @@ func TestLidoWithdrawalQueueERC721_getLabelValues(t *testing.T) {
 	addresses := []*AddressLidoWithdrawalQueueERC721{
 		{
 			Name:     "Label Queue",
-			Address:  "0x1234567890123456789012345678901234567890",
-			Contract: "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1",
+			Address:  testLidoHolderAddress,
+			Contract: testLidoQueueContract,
 			Labels: map[string]string{
-				"type": "withdrawal",
+				testLabelKeyType: "withdrawal",
 			},
 		},
 	}
@@ -192,8 +200,8 @@ func TestLidoWithdrawalQueueERC721_getLabelValues(t *testing.T) {
 
 	labels := queue.getLabelValues(addresses[0], "abcETH", "mock-node")
 	assertLabelContains(t, labels, "Label Queue")
-	assertLabelContains(t, labels, "0x1234567890123456789012345678901234567890")
-	assertLabelContains(t, labels, "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1")
+	assertLabelContains(t, labels, testLidoHolderAddress)
+	assertLabelContains(t, labels, testLidoQueueContract)
 	assertLabelContains(t, labels, "abcETH")
 	assertLabelContains(t, labels, "mock-node")
 	assertLabelContains(t, labels, "withdrawal")

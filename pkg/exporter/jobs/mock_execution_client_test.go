@@ -6,6 +6,11 @@ import (
 	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 )
 
+const (
+	defaultMockSymbolUSDTResponse  = "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000455544800000000000000000000000000000000000000000000000000000000"
+	defaultMockGetReservesResponse = "0x0000000000000000000000000000000000000000000000000de0b6b3a76400000000000000000000000000000000000000000000000000000de0b6b3a7640000"
+)
+
 // mockExecutionClient is a mock implementation of the ExecutionClient interface for testing.
 type mockExecutionClient struct {
 	name                       string
@@ -42,7 +47,7 @@ func (m *mockExecutionClient) Name() string {
 		return m.name
 	}
 
-	return "mock-node"
+	return testMockNodeName
 }
 
 func (m *mockExecutionClient) ETHCall(_ context.Context, transaction *api.ETHCallTransaction, block string) (string, error) {
@@ -130,7 +135,7 @@ func (m *mockExecutionClient) handleSymbol() (string, error) {
 		return m.symbolResponse, nil
 	}
 
-	return "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000455544800000000000000000000000000000000000000000000000000000000", nil
+	return defaultMockSymbolUSDTResponse, nil
 }
 
 func (m *mockExecutionClient) handleGetReserves() (string, error) {
@@ -138,7 +143,7 @@ func (m *mockExecutionClient) handleGetReserves() (string, error) {
 		return m.getReservesResponse, nil
 	}
 
-	return "0x0000000000000000000000000000000000000000000000000de0b6b3a76400000000000000000000000000000000000000000000000000000de0b6b3a7640000", nil
+	return defaultMockGetReservesResponse, nil
 }
 
 func (m *mockExecutionClient) handleLatestAnswer() (string, error) {
