@@ -17,15 +17,16 @@ type Metrics interface {
 }
 
 type metrics struct {
-	log                      logrus.FieldLogger
-	accountMetrics           jobs.Account
-	erc20Metrics             jobs.ERC20
-	erc721Metrics            jobs.ERC721
-	erc1155Metrics           jobs.ERC1155
-	erc4626Metrics           jobs.ERC4626
-	uniswapPairMetrics       jobs.UniswapPair
-	chainlinkDataFeedMetrics jobs.ChainlinkDataFeed
-	erc4337Metrics           jobs.ERC4337
+	log                              logrus.FieldLogger
+	accountMetrics                   jobs.Account
+	erc20Metrics                     jobs.ERC20
+	erc721Metrics                    jobs.ERC721
+	erc1155Metrics                   jobs.ERC1155
+	erc4626Metrics                   jobs.ERC4626
+	lidoWithdrawalQueueERC721Metrics jobs.LidoWithdrawalQueueERC721
+	uniswapPairMetrics               jobs.UniswapPair
+	chainlinkDataFeedMetrics         jobs.ChainlinkDataFeed
+	erc4337Metrics                   jobs.ERC4337
 
 	enabledJobs map[string]bool
 }
@@ -33,15 +34,16 @@ type metrics struct {
 // NewMetrics creates a new execution Metrics instance.
 func NewMetrics(clients []api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses *Addresses) Metrics {
 	m := &metrics{
-		log:                      log,
-		accountMetrics:           jobs.NewAccount(clients, log, checkInterval, namespace, constLabels, addresses.Account),
-		erc20Metrics:             jobs.NewERC20(clients, log, checkInterval, namespace, constLabels, addresses.ERC20),
-		erc721Metrics:            jobs.NewERC721(clients, log, checkInterval, namespace, constLabels, addresses.ERC721),
-		erc1155Metrics:           jobs.NewERC1155(clients, log, checkInterval, namespace, constLabels, addresses.ERC1155),
-		erc4626Metrics:           jobs.NewERC4626(clients, log, checkInterval, namespace, constLabels, addresses.ERC4626),
-		uniswapPairMetrics:       jobs.NewUniswapPair(clients, log, checkInterval, namespace, constLabels, addresses.UniswapPair),
-		chainlinkDataFeedMetrics: jobs.NewChainlinkDataFeed(clients, log, checkInterval, namespace, constLabels, addresses.ChainlinkDataFeed),
-		erc4337Metrics:           jobs.NewERC4337(clients, log, checkInterval, namespace, constLabels, addresses.ERC4337),
+		log:                              log,
+		accountMetrics:                   jobs.NewAccount(clients, log, checkInterval, namespace, constLabels, addresses.Account),
+		erc20Metrics:                     jobs.NewERC20(clients, log, checkInterval, namespace, constLabels, addresses.ERC20),
+		erc721Metrics:                    jobs.NewERC721(clients, log, checkInterval, namespace, constLabels, addresses.ERC721),
+		erc1155Metrics:                   jobs.NewERC1155(clients, log, checkInterval, namespace, constLabels, addresses.ERC1155),
+		erc4626Metrics:                   jobs.NewERC4626(clients, log, checkInterval, namespace, constLabels, addresses.ERC4626),
+		lidoWithdrawalQueueERC721Metrics: jobs.NewLidoWithdrawalQueueERC721(clients, log, checkInterval, namespace, constLabels, addresses.LidoWithdrawalQueueERC721),
+		uniswapPairMetrics:               jobs.NewUniswapPair(clients, log, checkInterval, namespace, constLabels, addresses.UniswapPair),
+		chainlinkDataFeedMetrics:         jobs.NewChainlinkDataFeed(clients, log, checkInterval, namespace, constLabels, addresses.ChainlinkDataFeed),
+		erc4337Metrics:                   jobs.NewERC4337(clients, log, checkInterval, namespace, constLabels, addresses.ERC4337),
 
 		enabledJobs: make(map[string]bool, 8),
 	}
@@ -66,6 +68,10 @@ func NewMetrics(clients []api.ExecutionClient, log logrus.FieldLogger, checkInte
 
 	if len(addresses.ERC4626) > 0 {
 		m.enabledJobs[m.erc4626Metrics.Name()] = true
+	}
+
+	if len(addresses.LidoWithdrawalQueueERC721) > 0 {
+		m.enabledJobs[m.lidoWithdrawalQueueERC721Metrics.Name()] = true
 	}
 
 	if len(addresses.UniswapPair) > 0 {
@@ -102,6 +108,10 @@ func (m *metrics) StartAsync(ctx context.Context) {
 
 	if m.enabledJobs[m.erc4626Metrics.Name()] {
 		go m.erc4626Metrics.Start(ctx)
+	}
+
+	if m.enabledJobs[m.lidoWithdrawalQueueERC721Metrics.Name()] {
+		go m.lidoWithdrawalQueueERC721Metrics.Start(ctx)
 	}
 
 	if m.enabledJobs[m.uniswapPairMetrics.Name()] {

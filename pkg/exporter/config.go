@@ -36,14 +36,16 @@ type ExecutionNode struct {
 
 // Addresses holds all address types to monitor.
 type Addresses struct {
-	Account           []*jobs.AddressAccount           `yaml:"account"`
-	ERC20             []*jobs.AddressERC20             `yaml:"erc20"`
-	ERC721            []*jobs.AddressERC721            `yaml:"erc721"`
-	ERC1155           []*jobs.AddressERC1155           `yaml:"erc1155"`
-	ERC4626           []*jobs.AddressERC4626           `yaml:"erc4626"`
-	UniswapPair       []*jobs.AddressUniswapPair       `yaml:"uniswapPair"`
-	ChainlinkDataFeed []*jobs.AddressChainlinkDataFeed `yaml:"chainlinkDataFeed"`
-	ERC4337           []*jobs.AddressERC4337           `yaml:"erc4337"`
+	Account []*jobs.AddressAccount `yaml:"account"`
+	ERC20   []*jobs.AddressERC20   `yaml:"erc20"`
+	ERC721  []*jobs.AddressERC721  `yaml:"erc721"`
+	ERC1155 []*jobs.AddressERC1155 `yaml:"erc1155"`
+	ERC4626 []*jobs.AddressERC4626 `yaml:"erc4626"`
+	//nolint:tagliatelle // Preserve ERC721 casing in the public YAML key to match existing ERC naming.
+	LidoWithdrawalQueueERC721 []*jobs.AddressLidoWithdrawalQueueERC721 `yaml:"lidoWithdrawalQueueERC721"`
+	UniswapPair               []*jobs.AddressUniswapPair               `yaml:"uniswapPair"`
+	ChainlinkDataFeed         []*jobs.AddressChainlinkDataFeed         `yaml:"chainlinkDataFeed"`
+	ERC4337                   []*jobs.AddressERC4337                   `yaml:"erc4337"`
 }
 
 // named is implemented by address types that have a Name field.
@@ -94,6 +96,7 @@ func (c *Config) Validate() error {
 		{checkDuplicateNames(c.Addresses.ERC721, "erc721")},
 		{checkDuplicateNames(c.Addresses.ERC1155, "erc1155")},
 		{checkDuplicateNames(c.Addresses.ERC4626, "erc4626")},
+		{checkDuplicateNames(c.Addresses.LidoWithdrawalQueueERC721, "lido withdrawal queue erc721")},
 		{checkDuplicateNames(c.Addresses.UniswapPair, "uniswap pair")},
 		{checkDuplicateNames(c.Addresses.ChainlinkDataFeed, "chainlink data feed")},
 		{checkDuplicateNames(c.Addresses.ERC4337, "erc4337")},

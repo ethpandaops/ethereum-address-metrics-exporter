@@ -7,6 +7,7 @@ A Prometheus metrics exporter for Ethereum externally owned account and contract
 - [ERC721](https://eips.ethereum.org/EIPS/eip-721) contracts
 - [ERC1155](https://eips.ethereum.org/EIPS/eip-1155) contracts
 - [ERC4626](https://eips.ethereum.org/EIPS/eip-4626) tokenized vaults
+- [Lido-compatible withdrawal queue ERC721](https://docs.lido.fi/contracts/withdrawal-queue-erc721/) contracts
 - [ERC4337](https://eips.ethereum.org/EIPS/eip-4337) account abstraction
 - [Uniswap pair](https://v2.info.uniswap.org/pairs) contracts
 - [Chainlink data feed](https://docs.chain.link/docs/data-feeds/price-feeds/addresses/?network=ethereum) contracts
@@ -69,6 +70,11 @@ Ethereum Address Metrics Exporter relies entirely on a single `yaml` config file
 | addresses.erc4626[].address |  | Ethereum address holding vault shares |
 | addresses.erc4626[].contract |  | Ethereum vault contract address |
 | addresses.erc4626[].labels[] |  | Key value pair of labels to add to this address only (optional) |
+| addresses.lidoWithdrawalQueueERC721 |  | List of [Lido-compatible withdrawal queue ERC721](https://docs.lido.fi/contracts/withdrawal-queue-erc721/) addresses |
+| addresses.lidoWithdrawalQueueERC721[].name |  | Name of the holder, will be a label on the metric |
+| addresses.lidoWithdrawalQueueERC721[].address |  | Ethereum address holding withdrawal request NFTs |
+| addresses.lidoWithdrawalQueueERC721[].contract |  | Ethereum withdrawal queue ERC721 contract address |
+| addresses.lidoWithdrawalQueueERC721[].labels[] |  | Key value pair of labels to add to this address only (optional) |
 | addresses.erc4337 |  | List of ethereum [ERC4337](https://eips.ethereum.org/EIPS/eip-4337) account addresses |
 | addresses.erc4337[].name |  | Name of the account, will be a label on the metric |
 | addresses.erc4337[].address |  | Ethereum address of the account |
@@ -138,6 +144,13 @@ addresses:
       address: 0x4B1D1465b14cA06e72b942F361Fd3352Aa9c5368
       labels:
         type: usdc
+  # https://docs.lido.fi/contracts/withdrawal-queue-erc721/
+  lidoWithdrawalQueueERC721:
+    - name: Some Withdrawal Queue Holder
+      contract: 0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1
+      address: 0x4B1D1465b14cA06e72b942F361Fd3352Aa9c5368
+      labels:
+        type: withdrawal-queue
   erc4337:
     - name: Some Paymaster
       contract: 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789

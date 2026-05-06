@@ -125,6 +125,16 @@ func TestConfig_Validate_DuplicateAddressNames(t *testing.T) {
 			wantErr: "duplicate erc4337 address with the same name: paymaster",
 		},
 		{
+			name: "duplicate lido withdrawal queue erc721 names",
+			addresses: Addresses{
+				LidoWithdrawalQueueERC721: []*jobs.AddressLidoWithdrawalQueueERC721{
+					{Name: "queue", Address: "0x1111111111111111111111111111111111111111", Contract: "0xaaaa"},
+					{Name: "queue", Address: "0x2222222222222222222222222222222222222222", Contract: "0xbbbb"},
+				},
+			},
+			wantErr: "duplicate lido withdrawal queue erc721 address with the same name: queue",
+		},
+		{
 			name: "same name across different types is OK",
 			addresses: Addresses{
 				Account: []*jobs.AddressAccount{
