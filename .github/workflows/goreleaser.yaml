@@ -43,7 +43,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
-          go-version: '1.25.1'
+          go-version: '1.26.10'
 
       - name: Run apt-get update
         run: sudo apt-get update
@@ -96,4 +96,4 @@ jobs:
             -e DOCKER_PASSWORD=${{ secrets.DOCKERHUB_TOKEN }} \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -e RELEASE_SUFFIX=${{ env.RELEASE_SUFFIX }} \
-            goreleaser/goreleaser-cross:v1.25.1 release --clean --config .goreleaser.yaml.new
+            goreleaser/goreleaser-cross:v1.27.3 release --clean --config .goreleaser.yaml.new

@@ -1,6 +1,6 @@
 module github.com/ethpandaops/ethereum-address-metrics-exporter
 
-go 1.26.1
+go 1.26.10
 
 // replace github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter => ./pkg/ethereum-address-metrics-exporter
 
