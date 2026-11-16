@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -61,7 +62,7 @@ func (e *exporter) Start(ctx context.Context) error {
 
 		e.log.WithFields(logrus.Fields{
 			"name": node.Name,
-			"url":  node.URL,
+			"url":  redactURL(node.URL),
 		}).Info("Configured execution node")
 	}
 
@@ -85,6 +86,17 @@ func (e *exporter) Start(ctx context.Context) error {
 	go e.metrics.StartAsync(ctx)
 
 	return nil
+}
+
+// redactURL returns rawURL with any password replaced by "xxxxx", for logging.
+// Unparseable URLs are not echoed back.
+func redactURL(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return "<invalid URL>"
+	}
+
+	return parsed.Redacted()
 }
 
 func (e *exporter) ServeMetrics(ctx context.Context) error {

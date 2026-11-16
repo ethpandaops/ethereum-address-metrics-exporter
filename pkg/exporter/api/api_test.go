@@ -241,3 +241,27 @@ func TestExecutionClient_ConnectionRefused(t *testing.T) {
 	_, err := client.ETHGetBalance(context.Background(), "0x1234567890123456789012345678901234567890", "latest")
 	assert.Error(t, err)
 }
+
+func TestExecutionClient_ErrorsDoNotContainPassword(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		url  string
+	}{
+		{name: "unparseable url", url: "http://user:testpass%zz@127.0.0.1:1/"}, //nolint:gosec // placeholder test credentials
+		{name: "connection refused", url: "http://user:testpass@127.0.0.1:1/"}, //nolint:gosec // placeholder test credentials
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			client := newTestClient(t, "node-1", tt.url)
+
+			_, err := client.ETHGetBalance(context.Background(), "0x1234567890123456789012345678901234567890", "latest")
+			require.Error(t, err)
+			assert.NotContains(t, err.Error(), "testpass")
+		})
+	}
+}
