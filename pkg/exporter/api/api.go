@@ -117,8 +117,7 @@ func (e *executionClient) post(ctx context.Context, method string, params any, i
 	req, err := http.NewRequestWithContext(ctx, httpMethod, e.url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		// A URL parse error includes the raw URL, which may contain credentials.
-		var urlErr *url.Error
-		if errors.As(err, &urlErr) {
+		if _, ok := errors.AsType[*url.Error](err); ok {
 			return nil, errors.New("invalid node URL")
 		}
 

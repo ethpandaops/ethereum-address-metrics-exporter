@@ -249,8 +249,8 @@ func TestExecutionClient_ErrorsDoNotContainPassword(t *testing.T) {
 		name string
 		url  string
 	}{
-		{name: "unparseable url", url: "http://user:testpass%zz@127.0.0.1:1/"},
-		{name: "connection refused", url: "http://user:testpass@127.0.0.1:1/"},
+		{name: "unparseable url", url: "http://user:testpass%zz@127.0.0.1:1/"}, //nolint:gosec // placeholder test credentials
+		{name: "connection refused", url: "http://user:testpass@127.0.0.1:1/"}, //nolint:gosec // placeholder test credentials
 	}
 
 	for _, tt := range tests {
