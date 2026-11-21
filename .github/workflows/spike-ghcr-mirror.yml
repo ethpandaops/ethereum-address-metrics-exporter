@@ -1,8 +1,7 @@
 name: spike-ghcr-mirror
 
-# Spike of the GHCR + attest + central mirror flow, using this repo's real
-# goreleaser build. Publishes only to ghcr.io/ethpandaops/<name>-spike and the
-# mirror's throwaway destination; nothing touches the production image.
+# Spike: publishes only ghcr.io/ethpandaops/<name>-spike; production images
+# are untouched.
 
 on:
   push:
@@ -21,9 +20,7 @@ jobs:
       attestations: write
     env:
       RELEASE_SUFFIX: spike
-      # Spike endpoint (a temporary tunnel to the test service); production
-      # uses the action's default URL.
-      SPIKE_MIRROR_URL: https://none-troy-lawn-waves.trycloudflare.com/v1/mirror
+      SPIKE_MIRROR_URL: https://none-troy-lawn-waves.trycloudflare.com
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -85,7 +82,6 @@ jobs:
         id: pushed
         run: echo "at=$(date +%s)" >> "$GITHUB_OUTPUT"
 
-      # The one shared step: attest what this job pushed, mirror it, wait.
       - name: Attest and mirror
         id: publish
         uses: ethpandaops/actions/mirror-image@spike/mirror-image
@@ -99,11 +95,9 @@ jobs:
           PUSHED_AT: ${{ steps.pushed.outputs.at }}
         run: |
           now=$(date +%s)
-          echo "GHCR push done -> attested and on the mirror destination: $(( now - PUSHED_AT ))s" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "push -> attested and mirrored: $(( now - PUSHED_AT ))s" | tee -a "$GITHUB_STEP_SUMMARY"
 
-      # Negative test: ask the mirror to publish a digest nobody attested
-      # (upstream alpine, retagged into our GHCR package). It must refuse.
-      - name: Mirror must refuse an unattested digest
+      - name: Unattested digest is refused
         run: |
           set -euo pipefail
           docker pull -q alpine:3.22 >/dev/null
@@ -111,11 +105,11 @@ jobs:
           docker push -q ghcr.io/ethpandaops/ethereum-address-metrics-exporter-spike:spike-unattested
           digest=$(docker buildx imagetools inspect ghcr.io/ethpandaops/ethereum-address-metrics-exporter-spike:spike-unattested --format '{{json .Manifest}}' | jq -r .digest)
           oidc=$(curl -fsS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=ethpandaops-image-mirror" | jq -r .value)
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=image-mirror" | jq -r .value)
           echo "::add-mask::${oidc}"
           body=$(jq -n --arg d "$digest" '{image: "ethereum-address-metrics-exporter-spike", tags: ["spike-unattested@\($d)"]}')
           code=$(curl -sS -o resp.txt -w '%{http_code}' -H @- -H "Content-Type: application/json" --data "$body" \
-            "$SPIKE_MIRROR_URL" <<<"Authorization: Bearer ${oidc}")
+            "${SPIKE_MIRROR_URL}/v1/mirror" <<<"Authorization: Bearer ${oidc}")
           cat resp.txt
           echo "HTTP ${code}"
           [[ $code == 422 ]]
