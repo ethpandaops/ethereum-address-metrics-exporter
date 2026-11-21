@@ -102,7 +102,7 @@ jobs:
             goreleaser/goreleaser-cross:v1.27.3 release --clean --config .goreleaser.yaml.new
 
       - name: Mirror to Docker Hub
-        uses: ethpandaops/actions/mirror-image@d551a87a994c387a9b17aa696c5a75124bef28d2
+        uses: ethpandaops/actions/mirror-image@b5bae3595baac114090b2c1f0194c1555765ef46
         with:
           goreleaser-artifacts: dist/artifacts.json
-          mirror-url: ${{ vars.IMAGE_MIRROR_URL }}
+          mirror-url: ${{ secrets.IMAGE_MIRROR_URL }}
