@@ -14,7 +14,10 @@ on:
 jobs:
   goreleaser:
     permissions:
-      contents: write
+      contents: write      # GitHub release
+      packages: write      # push to ghcr.io/ethpandaops
+      id-token: write      # attest, and authenticate to the image mirror
+      attestations: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -68,11 +71,12 @@ jobs:
         with:
           endpoint: builders
 
-      - name: Login to DockerHub
+      - name: Login to GHCR
         uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Update GoReleaser config
         run: |
@@ -92,8 +96,13 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
-            -e DOCKER_USERNAME=${{ secrets.DOCKERHUB_USERNAME }} \
-            -e DOCKER_PASSWORD=${{ secrets.DOCKERHUB_TOKEN }} \
+            -v "${HOME}/.docker:/root/.docker" \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -e RELEASE_SUFFIX=${{ env.RELEASE_SUFFIX }} \
             goreleaser/goreleaser-cross:v1.27.3 release --clean --config .goreleaser.yaml.new
+
+      - name: Mirror to Docker Hub
+        uses: ethpandaops/actions/mirror-image@b5bae3595baac114090b2c1f0194c1555765ef46
+        with:
+          goreleaser-artifacts: dist/artifacts.json
+          mirror-url: ${{ secrets.IMAGE_MIRROR_URL }}
