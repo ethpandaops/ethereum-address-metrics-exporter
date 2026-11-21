@@ -101,19 +101,8 @@ jobs:
             -e RELEASE_SUFFIX=${{ env.RELEASE_SUFFIX }} \
             goreleaser/goreleaser-cross:v1.27.3 release --clean --config .goreleaser.yaml.new
 
-      # Goreleaser records every image and manifest it pushed, with digests.
-      - name: List pushed images
-        id: images
-        run: |
-          tags=$(jq -r '[.[] | select(.type == "Docker Image" or .type == "Published Docker Image" or .type == "Docker Manifest")
-            | (.name | split(":")[1]) + (if (.extra.Digest // "") != "" then "@" + .extra.Digest else "" end)]
-            | unique | join(" ")' dist/artifacts.json)
-          [[ -n $tags ]] || { echo "::error::goreleaser pushed no images"; exit 1; }
-          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
-
       - name: Mirror to Docker Hub
-        uses: ethpandaops/actions/mirror-image@d0b938cf18cd2de7fa26647c4e903ad36ed3e32c
+        uses: ethpandaops/actions/mirror-image@d551a87a994c387a9b17aa696c5a75124bef28d2
         with:
-          image: ethereum-address-metrics-exporter
-          tags: ${{ steps.images.outputs.tags }}
+          goreleaser-artifacts: dist/artifacts.json
           mirror-url: ${{ vars.IMAGE_MIRROR_URL }}
