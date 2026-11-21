@@ -14,7 +14,10 @@ on:
 jobs:
   goreleaser:
     permissions:
-      contents: write
+      contents: write      # GitHub release
+      packages: write      # push to ghcr.io/ethpandaops
+      id-token: write      # attest, and authenticate to the image mirror
+      attestations: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -68,11 +71,12 @@ jobs:
         with:
           endpoint: builders
 
-      - name: Login to DockerHub
+      - name: Login to GHCR
         uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Update GoReleaser config
         run: |
@@ -92,8 +96,24 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
-            -e DOCKER_USERNAME=${{ secrets.DOCKERHUB_USERNAME }} \
-            -e DOCKER_PASSWORD=${{ secrets.DOCKERHUB_TOKEN }} \
+            -v "${HOME}/.docker:/root/.docker" \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -e RELEASE_SUFFIX=${{ env.RELEASE_SUFFIX }} \
             goreleaser/goreleaser-cross:v1.27.3 release --clean --config .goreleaser.yaml.new
+
+      # Goreleaser records every image and manifest it pushed, with digests.
+      - name: List pushed images
+        id: images
+        run: |
+          tags=$(jq -r '[.[] | select(.type == "Docker Image" or .type == "Published Docker Image" or .type == "Docker Manifest")
+            | (.name | split(":")[1]) + (if (.extra.Digest // "") != "" then "@" + .extra.Digest else "" end)]
+            | unique | join(" ")' dist/artifacts.json)
+          [[ -n $tags ]] || { echo "::error::goreleaser pushed no images"; exit 1; }
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+
+      - name: Mirror to Docker Hub
+        uses: ethpandaops/actions/mirror-image@d0b938cf18cd2de7fa26647c4e903ad36ed3e32c
+        with:
+          image: ethereum-address-metrics-exporter
+          tags: ${{ steps.images.outputs.tags }}
+          mirror-url: ${{ vars.IMAGE_MIRROR_URL }}
