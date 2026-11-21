@@ -1,0 +1,99 @@
+name: spike-ghcr-mirror
+
+# Spike of the GHCR + attest + central mirror flow, using this repo's real
+# goreleaser build. Publishes only to ghcr.io/ethpandaops/<name>-spike and the
+# mirror's throwaway destination; nothing touches the production image.
+
+on:
+  push:
+    branches:
+      - spike/ghcr-mirror
+
+permissions: {}
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    env:
+      RELEASE_SUFFIX: spike
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: '1.26.10'
+
+      - name: Install cross-compiler for linux/arm64
+        run: sudo apt-get update && sudo apt-get -y install gcc-aarch64-linux-gnu make
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Set up Docker Context for Buildx
+        run: docker context create builders
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        with:
+          endpoint: builders
+
+      - name: Login to GHCR
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Point goreleaser at GHCR
+        id: cfg
+        run: |
+          version="0.0.0-spike.${GITHUB_RUN_NUMBER}"
+          git tag "v${version}"
+          sed 's#ethpandaops/{{ .ProjectName }}#ghcr.io/ethpandaops/{{ .ProjectName }}-spike#g' .goreleaser.yaml > .goreleaser.spike.yaml
+          printf 'release:\n  disable: true\n' >> .goreleaser.spike.yaml
+          tags="${version}-amd64 spike-latest-amd64 ${version}-arm64v8 spike-latest-arm64v8 ${version} ${version}-arm64 spike-latest"
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+          echo "built_at=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Run GoReleaser in Docker
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/workspace" \
+            -v "${HOME}/.docker:/root/.docker" \
+            -w /workspace \
+            -e GITHUB_TOKEN \
+            -e RELEASE_SUFFIX \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            goreleaser/goreleaser-cross:v1.27.3 release --clean --skip=validate,announce --config .goreleaser.spike.yaml
+
+      - name: Mark push done
+        id: pushed
+        run: echo "at=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      # Standard step: attest what this job pushed, then mirror and wait.
+      - name: Attest and mirror
+        id: publish
+        uses: ./.github/actions/publish
+        with:
+          image: ethereum-address-metrics-exporter-spike
+          tags: ${{ steps.cfg.outputs.tags }}
+          mirror: "false"
+
+      - name: Timing
+        env:
+          PUSHED_AT: ${{ steps.pushed.outputs.at }}
+        run: |
+          now=$(date +%s)
+          echo "GHCR push done -> attested and mirrored: $(( now - PUSHED_AT ))s" | tee -a "$GITHUB_STEP_SUMMARY"
